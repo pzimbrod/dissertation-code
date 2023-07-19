@@ -38,7 +38,23 @@ def create_geometry():
             gmsh.model.setPhysicalName(surface[0], outlet_marker, "Solid bottom")
         else:
             walls.append(surface[1])
-       
-    
+    # Write the remainders to "walls"
     gmsh.model.addPhysicalGroup(2, walls, wall_marker)
     gmsh.model.setPhysicalName(2, wall_marker, "Walls")
+
+    # True generates a Hex mesh
+    transfinite = True
+    if transfinite:
+        NN = 30
+        for c in gmsh.model.getEntities(1):
+            gmsh.model.mesh.setTransfiniteCurve(c[1], NN)
+        for s in gmsh.model.getEntities(2):
+            gmsh.model.mesh.setTransfiniteSurface(s[1])
+            gmsh.model.mesh.setRecombine(s[0], s[1])
+            gmsh.model.mesh.setSmoothing(s[0], s[1], 100)
+        gmsh.model.mesh.setTransfiniteVolume(domain)
+
+    # Generate mesh
+    gmsh.model.occ.synchronize()
+    gmsh.model.mesh.generate(3)
+    gmsh.write("mesh3D.msh")

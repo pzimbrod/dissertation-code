@@ -15,10 +15,30 @@ from dolfinx.graph import create_adjacencylist
 from dolfinx.geometry import BoundingBoxTree, compute_collisions, compute_colliding_cells
 from dolfinx.io import (VTXWriter, distribute_entity_data, gmshio)
 from dolfinx.mesh import create_mesh, meshtags_from_entities
+import pyvista
 
 from ufl import (FacetNormal, FiniteElement, Identity, Measure, TestFunction, TrialFunction, VectorElement,
                  as_vector, div, dot, ds, dx, inner, lhs, grad, nabla_grad, rhs, sym)
 
 from geometry import create_geometry
 
-create_geometry()
+def check_msh_file(directory):
+    for root, dirs, files in os.walk(directory):
+        for file in files:
+            if file.endswith(".msh"):
+                return True
+    return False
+
+#========   Set this to True if you want to overwrite an existing mesh (if one is present) ==========#
+create_new_mesh = True
+
+current_directory = os.getcwd()
+mesh_already_present = check_msh_file(current_directory)
+model_rank = 0
+
+if not mesh_already_present or create_new_mesh:
+    create_geometry()
+    mesh, cell_tags, facet_tags = gmshio.model_to_mesh(gmsh.model, MPI.COMM_WORLD, model_rank)
+else:
+    mesh, cell_tags, facet_tags = gmshio.read_from_msh("mesh3D.msh", MPI.COMM_WORLD, 0, gdim=3)
+
