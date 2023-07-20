@@ -18,9 +18,11 @@ from dolfinx.mesh import create_mesh, meshtags_from_entities
 import pyvista
 
 from ufl import (FacetNormal, FiniteElement, Identity, Measure, TestFunction, TrialFunction, VectorElement,
-                 as_vector, div, dot, ds, dx, inner, lhs, grad, nabla_grad, rhs, sym)
+                 MixedElement,as_vector, div, dot, ds, dx, inner, lhs, grad, nabla_grad, rhs, sym, variable)
 
 from geometry import create_geometry
+from material_properties import *
+from numerical_parameters import *
 
 def check_msh_file(directory):
     for root, dirs, files in os.walk(directory):
@@ -30,7 +32,7 @@ def check_msh_file(directory):
     return False
 
 #========   Set this to True if you want to overwrite an existing mesh (if one is present) ==========#
-create_new_mesh = True
+create_new_mesh = False
 
 current_directory = os.getcwd()
 mesh_already_present = check_msh_file(current_directory)
@@ -42,3 +44,11 @@ if not mesh_already_present or create_new_mesh:
 else:
     mesh, cell_tags, facet_tags = gmshio.read_from_msh("mesh3D.msh", MPI.COMM_WORLD, 0, gdim=3)
 
+facet_tags.name = "Facet markers"
+
+from function_spaces import create_fe_functions
+testFunctions, trialFunctions, functions = create_fe_functions(mesh=mesh, degree=degree)
+
+from weak_form import generate_weak_form
+A, l = generate_weak_form(mesh, trialFunctions=trialFunctions, testFunctions=testFunctions,
+                        functions=functions)
