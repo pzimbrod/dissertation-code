@@ -1,5 +1,5 @@
 from dolfinx.fem import Constant, Function, FunctionSpace
-from ufl import FiniteElement, VectorElement, TrialFunction, TestFunction
+from ufl import FiniteElement, VectorElement, TrialFunctions, TestFunctions, MixedElement
 from dolfinx.mesh import Mesh
 
 """
@@ -17,33 +17,42 @@ def create_fe_functions(mesh: Mesh,degree: int):
     fe_dg_scalar = FiniteElement(family="DG",cell=mesh.ufl_cell(),degree=degree)
     fe_cg_vector = VectorElement(family="CG",cell=mesh.ufl_cell(),degree=degree,dim=3)
 
-    fs_cg_scalar = FunctionSpace(mesh=mesh,element=fe_cg_scalar)
-    fs_dg_scalar = FunctionSpace(mesh=mesh,element=fe_dg_scalar)
-    fs_cg_vector = FunctionSpace(mesh=mesh,element=fe_cg_vector)
-    function_spaces = [fs_cg_scalar, fs_dg_scalar, fe_cg_vector]
+    # Create a mixed function space for all primary variables
+    fe = MixedElement([fe_cg_scalar,fe_dg_scalar,fe_dg_scalar,fe_dg_scalar,fe_dg_scalar,fe_cg_vector])
+    fs = FunctionSpace(mesh=mesh,element=fe)
 
     # Test Functions
-    v = TestFunction(fs_cg_scalar)
-    w = TestFunction(fs_dg_scalar)
-    q = TestFunction(fs_cg_vector)
-    testFunctions = [v,w,q]
+    s, q, a_s, a_l, a_g, v = TestFunctions(fs)
+    testFunctions = {
+        "test_T":           s,
+        "test_p":           q,
+        "test_alpha_solid": a_s,
+        "test_alpha_liquid":a_l,
+        "test_alpha_gas":   a_g,
+        "test_u":           v     
+    }
 
     # Time dependent problems have the time derivatives as Trial functions
-    dalpha_solid = TrialFunction(fs_dg_scalar)
-    dalpha_liquid = TrialFunction(fs_dg_scalar)
-    dalpha_gas = TrialFunction(fs_dg_scalar)
-    dp = TrialFunction(fs_dg_scalar)
-    du = TrialFunction(fs_cg_vector)
-    dT = TrialFunction(fs_cg_scalar)
-    trialFunctions = [dalpha_solid, dalpha_liquid, dalpha_gas, dp, du, dT]
+    dT, dp, dalpha_solid, dalpha_liquid, dalpha_gas, du = TrialFunctions(fs)
+    trialFunctions = {
+        "dalpha_solid":     dalpha_solid,
+        "dalpha_liquid":    dalpha_liquid,
+        "dalpha_gas":       dalpha_gas,
+        "dp":               dp,
+        "du":               du,
+        "dT":               dT
+    }
 
     # And the primary variables as regular Functions
-    alpha_solid = Function(fs_dg_scalar)
-    alpha_liquid = Function(fs_dg_scalar)
-    alpha_gas = Function(fs_dg_scalar)
-    p = Function(fs_dg_scalar)
-    u = Function(fs_cg_vector)
-    T = Function(fs_cg_scalar)
-    functions = [alpha_solid, alpha_liquid, alpha_gas, p, u, T]
+    f = Function(fs)
+    T, p, alpha_solid, alpha_liquid, alpha_gas, u = f.split()
+    functions = {
+        "alpha_solid":     alpha_solid,
+        "alpha_liquid":    alpha_liquid,
+        "alpha_gas":       alpha_gas,
+        "p":               p,
+        "u":               u,
+        "T":               T
+    }
 
-    return testFunctions, trialFunctions, functions, function_spaces
+    return testFunctions, trialFunctions, functions, fs

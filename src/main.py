@@ -54,8 +54,11 @@ markers = [
 ]
 
 from function_spaces import create_fe_functions
-testFunctions, trialFunctions, functions, function_spaces = create_fe_functions(mesh=mesh, degree=degree)
+testFunctions, trialFunctions, functions, fs = create_fe_functions(mesh=mesh, degree=degree)
 
-from weak_form import generate_weak_form
+from material_properties import setup_constants
+properties = setup_constants(mesh=mesh)
+
+from weak_form import generate_weak_form, upwind, lax_friedrichs, HLLE
 A, l = generate_weak_form(mesh, trialFunctions=trialFunctions, testFunctions=testFunctions,
-                        functions=functions)
+                        functions=functions, flux_function=upwind)
