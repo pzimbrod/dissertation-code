@@ -45,9 +45,16 @@ else:
     mesh, cell_tags, facet_tags = gmshio.read_from_msh("mesh3D.msh", MPI.COMM_WORLD, 0, gdim=3)
 
 facet_tags.name = "Facet markers"
+inlet_marker, outlet_marker, wall_marker, bottom_marker = 1, 3, 5, 7
+markers = [
+    inlet_marker,
+    outlet_marker,
+    wall_marker,
+    bottom_marker
+]
 
 from function_spaces import create_fe_functions
-testFunctions, trialFunctions, functions = create_fe_functions(mesh=mesh, degree=degree)
+testFunctions, trialFunctions, functions, function_spaces = create_fe_functions(mesh=mesh, degree=degree)
 
 from weak_form import generate_weak_form
 A, l = generate_weak_form(mesh, trialFunctions=trialFunctions, testFunctions=testFunctions,

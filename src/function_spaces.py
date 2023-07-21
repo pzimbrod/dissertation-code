@@ -20,6 +20,7 @@ def create_fe_functions(mesh: Mesh,degree: int):
     fs_cg_scalar = FunctionSpace(mesh=mesh,element=fe_cg_scalar)
     fs_dg_scalar = FunctionSpace(mesh=mesh,element=fe_dg_scalar)
     fs_cg_vector = FunctionSpace(mesh=mesh,element=fe_cg_vector)
+    function_spaces = [fs_cg_scalar, fs_dg_scalar, fe_cg_vector]
 
     # Test Functions
     v = TestFunction(fs_cg_scalar)
@@ -45,4 +46,4 @@ def create_fe_functions(mesh: Mesh,degree: int):
     T = Function(fs_cg_scalar)
     functions = [alpha_solid, alpha_liquid, alpha_gas, p, u, T]
 
-    return testFunctions, trialFunctions, functions
+    return testFunctions, trialFunctions, functions, function_spaces
