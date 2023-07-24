@@ -21,8 +21,8 @@ from ufl import (FacetNormal, FiniteElement, Identity, Measure, TestFunction, Tr
                  MixedElement,as_vector, div, dot, ds, dx, inner, lhs, grad, nabla_grad, rhs, sym, variable)
 
 from geometry import create_geometry
-from material_properties import *
-from numerical_parameters import *
+from materials.material_properties import *
+from numerics.numerical_parameters import *
 
 def check_msh_file(directory):
     for root, dirs, files in os.walk(directory):
@@ -56,7 +56,7 @@ markers = [
 from function_spaces import create_fe_functions
 testFunctions, trialFunctions, functions, fs = create_fe_functions(mesh=mesh, degree=degree)
 
-from material_properties import setup_constants
+from materials.material_properties import setup_constants
 properties = setup_constants(mesh=mesh)
 
 from weak_form import generate_weak_form, upwind, lax_friedrichs, HLLE

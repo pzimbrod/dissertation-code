@@ -6,36 +6,8 @@ from ufl import (FacetNormal, FiniteElement, Identity, Measure, TestFunction, Tr
                  jump,avg, Form, Identity, outer, Dx)
 from ufl.algebra import Power, Sum
 
-def upwind(velocity: Function,n: FacetNormal, trial: TrialFunction) -> Form:
-    vel_n = 0.5*(dot(velocity, n) + abs(dot(velocity, n)))
-    return jump(vel_n * trial)
-
-def lax_friedrichs(velocity: Function,n: FacetNormal, trial: TrialFunction) -> Form:
-    v_max = max(max(velocity),0)
-    return dot(avg(velocity * trial),n('+')) + 0.5 * v_max * jump(trial)
-
-def HLLE(velocity: Function,n: FacetNormal, trial: TrialFunction) -> Form:
-    v_max = max(max(velocity),0)
-    v_min = min(min(velocity),0)
-    return v_max/(v_max-v_min) * dot(velocity('+'),n('+'))*trial('+') - \
-          v_min * dot(velocity('-'),n('+'))*trial('-') - v_max * v_min * jump(trial)
-
-def interface_marker(alpha: Function) -> Form:
-    dim = 2
-    return Power(Sum(
-        *[Power(Dx(alpha,i),2) for i in range(0,dim)]),
-        0.5
-    )
-
-def interface_normal(alpha: Function) -> Form:
-    mag_alpha = interface_marker(alpha=alpha)
-    return 1/mag_alpha * grad(alpha)
-
-def capillary_stress(alpha: Function,n: FacetNormal) -> Form:
-    (dim,) = n.ufl_shape
-    I = Identity(dim=dim)
-    n = interface_normal(alpha=alpha)
-    return interface_marker(alpha=alpha) * (I-outer(n,n))
+from numerics.fluxes import HLLE, lax_friedrichs, upwind
+from numerics.multiphase import interface_marker, interface_normal, capillary_stress
 
 def DG_gradient(test: TestFunction, fn: Function, u: Function, n: FacetNormal, flux_function):
     return inner(fn,div(test*u))*dx - jump(test)*flux_function(u,n,fn)*ds
@@ -71,7 +43,8 @@ def generate_weak_form(mesh,trialFunctions,testFunctions,functions,flux_function
     # Continuity
     F += -inner(div(u),test_p)*dx
     # Velocity
-    F += inner(test_u,div(capillary_stress(alpha=alpha_liquid,n=n)))*dx
+    F += -inner(grad(test_u),grad(u))*dx                                    # Viscous term (viscosity missing)
+    F += inner(test_u,div(capillary_stress(alpha=alpha_liquid,n=n)))*dx     # Capillary Stress (ST missing)
     # Temperature
 
     A, l = lhs(F), rhs(F)
