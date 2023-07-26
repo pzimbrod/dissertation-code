@@ -6,19 +6,9 @@ import matplotlib.pyplot as plt
 from mpi4py import MPI
 from petsc4py import PETSc
 
-from dolfinx.cpp.mesh import to_type, cell_entity_type
-from dolfinx.fem import (Constant, Function, FunctionSpace, 
-                         assemble_scalar, dirichletbc, form, locate_dofs_topological, set_bc)
-from dolfinx.fem.petsc import (apply_lifting, assemble_matrix, assemble_vector, 
-                               create_vector, create_matrix, set_bc)
-from dolfinx.graph import create_adjacencylist
-from dolfinx.geometry import BoundingBoxTree, compute_collisions, compute_colliding_cells
-from dolfinx.io import (VTXWriter, distribute_entity_data, gmshio)
-from dolfinx.mesh import create_mesh, meshtags_from_entities
+from dolfinx.fem.petsc import NonlinearProblem
+from dolfinx.io import gmshio
 import pyvista
-
-from ufl import (FacetNormal, FiniteElement, Identity, Measure, TestFunction, TrialFunction, VectorElement,
-                 MixedElement,as_vector, div, dot, ds, dx, inner, lhs, grad, nabla_grad, rhs, sym, variable)
 
 from geometry import create_geometry
 from materials.material_properties import *
@@ -54,11 +44,13 @@ markers = [
 ]
 
 from function_spaces import create_fe_functions
-testFunctions, trialFunctions, functions, fs = create_fe_functions(mesh=mesh, degree=degree)
+testFunctions, trialFunctions, functions, fs, f = create_fe_functions(mesh=mesh, degree=degree)
 
 from materials.material_properties import setup_constants
 properties = setup_constants(mesh=mesh)
 
 from weak_form import generate_weak_form, upwind, lax_friedrichs, HLLE
-A, l = generate_weak_form(mesh, trialFunctions=trialFunctions, testFunctions=testFunctions,
-                        functions=functions, flux_function=upwind)
+F = generate_weak_form(mesh, trialFunctions=trialFunctions, testFunctions=testFunctions,
+                        functions=functions, flux_function=upwind, constants=properties)
+
+prob = NonlinearProblem(F=F,u=f, bcs=[])

@@ -55,4 +55,4 @@ def create_fe_functions(mesh: Mesh,degree: int):
         "T":               T
     }
 
-    return testFunctions, trialFunctions, functions, fs
+    return testFunctions, trialFunctions, functions, fs, f
