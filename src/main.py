@@ -44,13 +44,16 @@ markers = [
 ]
 
 from function_spaces import create_fe_functions
-testFunctions, trialFunctions, functions, fs, f = create_fe_functions(mesh=mesh, degree=degree)
+function_space, functions = create_fe_functions(mesh=mesh, degree=degree)
+
+from initial_condition import project_initial_conditions
+project_initial_conditions(functions=functions)
 
 from materials.material_properties import setup_constants
 properties = setup_constants(mesh=mesh)
 
 from weak_form import generate_weak_form, upwind, lax_friedrichs, HLLE
-F = generate_weak_form(mesh, trialFunctions=trialFunctions, testFunctions=testFunctions,
+F = generate_weak_form(mesh, function_space=function_space,
                         functions=functions, flux_function=upwind, constants=properties)
 
-prob = NonlinearProblem(F=F,u=f, bcs=[])
+prob = NonlinearProblem(F=F,u=functions, bcs=[])

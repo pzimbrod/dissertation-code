@@ -1,8 +1,7 @@
 from ufl.algebra import Sum
 from dolfinx.fem import Function
 from dolfinx.mesh import Mesh
-from ufl import Form, Identity, FacetNormal, grad, Dx, outer, sqrt, inner, CellVolume
-from ufl.algebra import Power
+from ufl import Form, Identity, FacetNormal, grad, outer, sqrt, inner
 
 """
 The coloring function delta_s mentioned in Brackbill et al. to

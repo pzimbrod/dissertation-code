@@ -1,5 +1,5 @@
-from dolfinx.fem import Function
-from ufl import FacetNormal, TestFunction,div,nabla_div, dS, dx, inner, lhs, grad, rhs,jump, SpatialCoordinate, Form
+from dolfinx.fem import Function, FunctionSpace
+from ufl import FacetNormal, TestFunctions, TestFunction,div,nabla_div, dS, dx, inner, lhs, grad, rhs,jump, SpatialCoordinate, Form
 
 from numerics.fluxes import HLLE, lax_friedrichs, upwind
 from numerics.multiphase import interface_marker, interface_normal, capillary_stress
@@ -8,17 +8,11 @@ from materials.material_models import recoil_pressure, heat_of_vaporisation, rad
 def DG_gradient(test: TestFunction, fn: Function, u: Function, n: FacetNormal, flux_function) -> Form:
     return inner(fn,div(test*u))*dx - jump(test)*flux_function(u,n,fn)*dS
 
-def generate_weak_form(mesh,constants,trialFunctions,testFunctions,functions,flux_function) -> Form:
-    test_as, test_al, test_ag, test_T, test_p, test_u = testFunctions["test_alpha_solid"], testFunctions["test_alpha_liquid"], \
-                            testFunctions["test_alpha_gas"], testFunctions["test_T"], testFunctions["test_p"], testFunctions["test_u"]
+def generate_weak_form(mesh,constants,function_space: FunctionSpace,functions: Function,flux_function) -> Form:
+    test_T, test_as, test_al, test_ag, test_p, test_u = TestFunctions(function_space=function_space)
 
-    dalpha_solid, dalpha_liquid, dalpha_gas = trialFunctions["dalpha_solid"], trialFunctions["dalpha_liquid"], \
-                                                trialFunctions["dalpha_gas"]
-    du, dp, dT                              = trialFunctions["du"], trialFunctions["dp"], trialFunctions["dT"]
+    T, alpha_solid, alpha_liquid, alpha_gas, p, u = functions.split()
 
-    alpha_solid, alpha_liquid, alpha_gas    = functions["alpha_solid"], functions["alpha_liquid"], \
-                                                functions["alpha_gas"]
-    u, p, T                                 = functions["u"], functions["p"], functions["T"]
     kappa, rho, c_p                         = constants["kappa"], constants["rho"], constants["c_p"]
 
     n = FacetNormal(mesh)
