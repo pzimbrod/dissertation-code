@@ -52,8 +52,11 @@ project_initial_conditions(functions=functions)
 from materials.material_properties import setup_constants
 properties = setup_constants(mesh=mesh)
 
-from weak_form import generate_weak_form, upwind, lax_friedrichs, HLLE
+from weak_form import generate_weak_form, upwind
 F = generate_weak_form(mesh, function_space=function_space,
                         functions=functions, flux_function=upwind, constants=properties)
 
-prob = NonlinearProblem(F=F,u=functions, bcs=[])
+from boundary_condition import define_boundary_conditions
+bcs = define_boundary_conditions(mesh=mesh,facets=facet_tags,markers=markers,fs=function_space,functions=functions)
+
+prob = NonlinearProblem(F=F,u=functions, bcs=[bcs])

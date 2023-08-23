@@ -1,5 +1,6 @@
-from dolfinx.fem import dirichletbc, locate_dofs_topological, Constant, Function
-from petsc4py import PETSc
+from dolfinx.fem import dirichletbc, locate_dofs_topological, Constant, Function, FunctionSpace
+from dolfinx.mesh import Mesh
+from petsc4py.PETSc import ScalarType
 import numpy as np
 
 """
@@ -12,35 +13,35 @@ u             | 1 Dirichlet     0 Neumann       0 Neumann       0 Neumann
 p             | 0 Neumann       0 Dirichlet     0 Neumann       0 Neumann
 T             | 0 Neumann       0 Neumann       Dirichlet 473   0 Neumann
 """
-def define_boundary_conditions(mesh,facets,markers,function_spaces):
+def define_boundary_conditions(mesh: Mesh,facets,markers,fs: FunctionSpace, functions: Function):
     fdim = mesh.topology.dim - 1
     inlet_marker, outlet_marker, wall_marker, bottom_marker = markers
-    fs_cg_scalar, fs_dg_scalar, fs_cg_vector = function_spaces
+    T, p, alpha_solid, alpha_liquid, alpha_gas, u = functions.split()
 
     # u
-    u_inlet = Function(fs_cg_vector)
-    inlet_vel = np.array([0.,1.,0.], dtype=PETSc.ScalarType)
-    u_inlet.interpolate(inlet_vel)
-    bc_u_inlet = dirichletbc(u_inlet, locate_dofs_topological(fs_cg_vector, fdim, 
-                                                              facets.find(inlet_marker)))
+    fs_u, _ = fs.sub(5).collapse()
+    u_inlet = Function(fs_u)
+    u_inlet.x.array[:] = 0.
+    u_inlet.x.array[:][1] = 1.
+    inlet_dofs = locate_dofs_topological((fs.sub(5),fs_u), fdim, facets.find(inlet_marker))
+    bc_u_inlet = dirichletbc(u_inlet,inlet_dofs,fs.sub(5))
     
     # p
-    p_outlet = Constant(mesh, PETSc.ScalarType(0.))
-    bc_p_outlet = dirichletbc(p_outlet, locate_dofs_topological(fs_dg_scalar, fdim, 
-                                                              facets.find(outlet_marker)))
+    p_outlet = Constant(mesh, ScalarType(0.))
+    fs_p, _ = fs.sub(1).collapse()
+    outlet_dofs = locate_dofs_topological(fs_p, fdim, facets.find(outlet_marker))
+    bc_p_outlet = dirichletbc(p_outlet, outlet_dofs,fs.sub(1))
 
     # T
-    T_bottom = Constant(mesh, PETSc.ScalarValue(473.))
-    bc_T_bottom = dirichletbc(T_bottom, locate_dofs_topological(fs_cg_scalar, fdim, 
-                                                              facets.find(bottom_marker)))
+    T_bottom = Constant(mesh, ScalarType(473.))
+    fs_T, _ = fs.sub(0).collapse()
+    bottom_dofs = locate_dofs_topological(fs_T, fdim, facets.find(bottom_marker))
+    bc_T_bottom = dirichletbc(T_bottom, bottom_dofs, fs.sub(0))
 
-    bcs = {
-        "u":            bc_u_inlet,
-        "p":            bc_p_outlet,
-        "T":            bc_T_bottom,
-        "alpha_solid":  [],
-        "alpha_liquid": [],
-        "alpha_gas":    []
-    }
+    bcs = [
+        bc_u_inlet,
+        bc_p_outlet,
+        bc_T_bottom,
+    ]
 
     return bcs
