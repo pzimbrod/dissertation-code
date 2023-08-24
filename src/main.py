@@ -47,7 +47,7 @@ from function_spaces import create_fe_functions
 function_space, functions = create_fe_functions(mesh=mesh, degree=degree)
 
 from initial_condition import project_initial_conditions
-project_initial_conditions(functions=functions)
+project_initial_conditions(function_space,functions)
 
 from materials.material_properties import setup_constants
 properties = setup_constants(mesh=mesh)

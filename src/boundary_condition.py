@@ -16,12 +16,13 @@ T             | 0 Neumann       0 Neumann       Dirichlet 473   0 Neumann
 def define_boundary_conditions(mesh: Mesh,facets,markers,fs: FunctionSpace, functions: Function):
     fdim = mesh.topology.dim - 1
     inlet_marker, outlet_marker, wall_marker, bottom_marker = markers
-    T, p, alpha_solid, alpha_liquid, alpha_gas, u = functions.split()
 
     # u
     fs_u, _ = fs.sub(5).collapse()
     u_inlet = Function(fs_u)
+    # Set all entries to 0
     u_inlet.x.array[:] = 0.
+    # Make the velocity vector (0,1,0), i.e. set y to 1
     u_inlet.x.array[:][1] = 1.
     inlet_dofs = locate_dofs_topological((fs.sub(5),fs_u), fdim, facets.find(inlet_marker))
     bc_u_inlet = dirichletbc(u_inlet,inlet_dofs,fs.sub(5))
