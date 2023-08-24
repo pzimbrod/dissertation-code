@@ -10,7 +10,14 @@ def set_IC_T(fs_T: FunctionSpace,T: Function) -> None:
     solid_height = 0.2
     solid_dofs = locate_dofs_geometrical(fs_T, lambda x: x[2] <= solid_height)
     T.x.array[solid_dofs] = T_base
+    return
 
+def set_IC_u(fs_u: FunctionSpace, u: Function) -> None:
+    block_velocity = np.vstack((0.,1.,0.))
+    shield_gas_height = 0.3
+    u_dofs = locate_dofs_geometrical(fs_u, lambda x: x[2] >= shield_gas_height)
+    for idx, x in enumerate(block_velocity):
+        u.x.array[u_dofs][idx] = x
     return
 
 def project_initial_conditions(fs: FunctionSpace, f: Function) -> None:
@@ -19,6 +26,9 @@ def project_initial_conditions(fs: FunctionSpace, f: Function) -> None:
     # Temperature
     fs_T, _ = fs.sub(0).collapse()
     set_IC_T(fs_T,T)
-    
 
+    # Velocity
+    fs_u, _ = fs.sub(5).collapse()
+    set_IC_u(fs_u,u)
+    
     return
