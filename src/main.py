@@ -6,7 +6,7 @@ import matplotlib.pyplot as plt
 from mpi4py import MPI
 from petsc4py import PETSc
 
-from dolfinx.fem.petsc import NonlinearProblem
+from dolfinx.log import set_log_level,LogLevel
 from dolfinx.io import gmshio
 import pyvista
 
@@ -22,7 +22,7 @@ def check_msh_file(directory):
     return False
 
 #========   Set this to True if you want to overwrite an existing mesh (if one is present) ==========#
-create_new_mesh = False
+create_new_mesh = True
 
 current_directory = os.getcwd()
 mesh_already_present = check_msh_file(current_directory)
@@ -59,4 +59,12 @@ F = generate_weak_form(mesh, function_space=function_space,
 from boundary_condition import define_boundary_conditions
 bcs = define_boundary_conditions(mesh=mesh,facets=facet_tags,markers=markers,fs=function_space,functions=functions)
 
-prob = NonlinearProblem(F=F,u=functions, bcs=[bcs])
+from output import write_xdmf
+write_xdmf(mesh=mesh, functions=functions)
+
+set_log_level(LogLevel.INFO)
+
+from solver import setup_solver
+solver = setup_solver(mesh=mesh,F=F,u=functions,bcs=bcs)
+solution = functions.copy()
+solver.solve(functions)
