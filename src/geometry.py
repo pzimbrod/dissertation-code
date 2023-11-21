@@ -41,6 +41,8 @@ def create_geometry():
     # Write the remainders to "walls"
     gmsh.model.addPhysicalGroup(2, walls, wall_marker)
     gmsh.model.setPhysicalName(2, wall_marker, "Walls")
+    volumes = gmsh.model.getEntities(dim=3)
+    gmsh.model.addPhysicalGroup(3, volumes[0])
 
     # True generates a Hex mesh
     transfinite = True
