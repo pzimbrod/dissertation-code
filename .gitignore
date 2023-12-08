@@ -164,3 +164,7 @@ cython_debug/
 *.msh
 *.xdmf
 *.h5
+
+# Paraview
+*.vtu
+*.pvd
