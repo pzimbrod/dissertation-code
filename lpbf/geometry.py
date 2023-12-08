@@ -1,7 +1,7 @@
 import gmsh
 from mpi4py import MPI
 import numpy as np
-from dolfinx.io import gmshio
+#from dolfinx.io import gmshio
 
 """
 Create the computational mesh for the hexahedral domain with surface markers.
