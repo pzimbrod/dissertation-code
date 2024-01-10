@@ -4,7 +4,9 @@ include("postprocess.jl")
 
 radius_FD, radius_CG, t, radius_theory = calculate_radius(sol_FD,sol_CG,tspan,Δx)
 
-using Plots; pyplot()
+using Plots; pgfplotsx()
+default(titlefont = (18, "times"), legendfont = (12, "times"), guidefont = (12, "times"),
+        tickfont = (12, "times"))
 
 n = length.(prob_FD.grid.domain)
 
@@ -18,8 +20,8 @@ final = plot(prob_FD.grid.domain...,reshape(sol_FD[end][:],n),
     zlabel = "ϕ", xlabel = "x[m]", ylabel = "y[m]")
 savefig(final,"final.pdf")
 
-radius = plot(t, radius_theory, label = "analytic solution", xlabel = "Time [s]",
+radius = plot(t, radius_theory, label = "Analytic solution", xlabel = "Time [s]",
             ylabel = "Radius [m]", legend = :topright)
-plot!(radius,sol_FD.t, radius_FD, label = "FD solution")
-scatter!(radius,sol_CG.t, radius_CG, label = "FE solution")
+plot!(radius,sol_FD.t, radius_FD, label = "Finite Difference solution")
+scatter!(radius,sol_CG.t, radius_CG, label = "Finite Element solution")
 savefig(radius,"radius.pdf")

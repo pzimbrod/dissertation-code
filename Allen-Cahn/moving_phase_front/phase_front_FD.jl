@@ -55,9 +55,9 @@ stencil = CentralDifference()
 sol_FD = solve_allenCahn_FD(order,grid,bc,operator,stencil,
                             apply_rhs!,IC!,p,tspan)
 
+"""
 using BenchmarkTools
 bench = @benchmarkable solve_allenCahn_FD(order,grid,bc,operator,stencil,
                                         apply_rhs!,IC!,p,tspan)
 run(bench,samples=100,evals=100,seconds=500)
-
-include("postprocess.jl")
+"""

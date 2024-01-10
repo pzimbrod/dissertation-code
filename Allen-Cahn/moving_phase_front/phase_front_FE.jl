@@ -47,7 +47,9 @@ primitive = Interval()
 el_type = Spectral()
 sol_CG = solve_allenCahn_CG(order,primitive,el_type,grid,IC!,apply_source_terms!,p)
 
+"""
 using BenchmarkTools
 bench = @benchmarkable solve_allenCahn_CG(order,primitive,el_type,grid,
                                             IC!,apply_source_terms!,p)
 run(bench,samples=100,evals=100,seconds=500)
+"""
