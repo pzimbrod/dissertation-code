@@ -1,5 +1,6 @@
 {
     "python.analysis.extraPaths": [
         "venv"
-    ]
+    ],
+    "julia.environmentPath": "/Users/zimbropa/Documents/Dissertation/Code"
 }

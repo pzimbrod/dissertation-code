@@ -1,4 +1,4 @@
-from firedrake import Mesh
+from firedrake import H1
 import numpy as np
 from geometry import create_geometry
 from mpi4py import MPI
@@ -38,7 +38,6 @@ degrees = {
 }
 
 model = PBFModel(mesh_path="mesh3d.msh",degrees=degrees)
-model.setup(project_output=False)
-#model.project_initial_conditions()
-#print(model.function_space.sub(0).collapse())
-print(model.functions[0].previous)
+model.setup("output/lpbf.pvd")
+model.project_initial_conditions()
+model.write_output()

@@ -1,8 +1,11 @@
 from firedrake import File
 
 class Output:
-    def _create_output(self,filename="lpbf",project_output=True):
-        self.outfile = File(filename=f"{filename}.pvd",project_output=project_output)
+    def _create_output(self,filename,**kwargs):
+        self.outfile = File(filename,**kwargs)
+        print(self.outfile._fnames)
     
     def write_output(self):
-        None
+        # The error 'int object is not iterable' only appears
+        # with hexahedral meshes
+        self.outfile.write(*[fun.next for fun in self.functions], time=self.time)
