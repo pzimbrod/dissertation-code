@@ -1,14 +1,6 @@
 from firedrake import (FiniteElement, VectorElement, MixedElement, MixedFunctionSpace,
-                       TestFunctions, Function, FunctionSpace)
-
-class TimeDependentFunction:
-     def __init__(self,fs: FunctionSpace, name: str) -> None:
-        str_previous = f"{name}_previous"
-        str_next = f"{name}_next"
-        fn_previous = Function(fs, name=str_previous)
-        fn_next = Function(fs, name=str_next)
-        self.previous = fn_previous
-        self.next     = fn_next
+                       TestFunctions)
+from TimeDependentFunction import TimeDependentFunction
 
 class Setup:
     def _setup_finite_element(self) -> None:
@@ -36,11 +28,16 @@ class Setup:
         self.functions = self.__setup_primary_variables()
     
     def __setup_primary_variables(self) -> None:
-         fs = self.function_space
-         alpha_solid = TimeDependentFunction(fs.sub(0), name="solid_fraction")
-         alpha_liquid = TimeDependentFunction(fs.sub(1), name="liquid_fraction")
-         alpha_gas = TimeDependentFunction(fs.sub(2), name="gas_fraction")
-         p = TimeDependentFunction(fs.sub(3), name="pressure")
-         u = TimeDependentFunction(fs.sub(4), name="velocity")
-         T = TimeDependentFunction(fs.sub(5), name="temperature")
-         return (alpha_solid, alpha_liquid, alpha_gas, p, u, T)
+        """
+        Creates the set of primary unknowns of the model.
+        As the coupled problem is nonlinear, there are no TrialFunctions.
+        Returns a tuple of TimeDependentFunctions.
+        """
+        fs = self.function_space
+        alpha_solid = TimeDependentFunction(fs.sub(0), name="solid_fraction")
+        alpha_liquid = TimeDependentFunction(fs.sub(1), name="liquid_fraction")
+        alpha_gas = TimeDependentFunction(fs.sub(2), name="gas_fraction")
+        p = TimeDependentFunction(fs.sub(3), name="pressure")
+        u = TimeDependentFunction(fs.sub(4), name="velocity")
+        T = TimeDependentFunction(fs.sub(5), name="temperature")
+        return (alpha_solid, alpha_liquid, alpha_gas, p, u, T)
