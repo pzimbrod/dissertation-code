@@ -3,7 +3,6 @@ from firedrake import File
 class Output:
     def _create_output(self,filename,**kwargs):
         self.outfile = File(filename,**kwargs)
-        print(self.outfile._fnames)
     
     def write_output(self):
         # The error 'int object is not iterable' only appears

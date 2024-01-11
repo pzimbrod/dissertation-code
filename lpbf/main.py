@@ -1,16 +1,10 @@
 from firedrake import H1
 import numpy as np
-from geometry import create_geometry
+from geometry import create_geometry, check_msh_file
 from mpi4py import MPI
 import os
 from PBFModel import PBFModel
 
-def check_msh_file(directory):
-    for root, dirs, files in os.walk(directory):
-        for file in files:
-            if file.endswith(".msh"):
-                return True
-    return False
 
 #========   Set this to True if you want to overwrite an existing mesh (if one is present) ==========#
 create_new_mesh = False
@@ -31,13 +25,11 @@ markers = [
 ]
 
 degrees = {
-    "alphas": 3,
+    "alphas": 2,
     "p"     : 1,
-    "u"     : 3,
+    "u"     : 2,
     "T"     : 3,
 }
 
 model = PBFModel(mesh_path="mesh3d.msh",degrees=degrees)
 model.setup("output/lpbf.pvd")
-model.project_initial_conditions()
-model.write_output()

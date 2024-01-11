@@ -59,4 +59,16 @@ def create_geometry():
     # Generate mesh
     gmsh.model.occ.synchronize()
     gmsh.model.mesh.generate(3)
+    if not transfinite:
+        n_refinements = 3
+        for _ in range(0,n_refinements):
+            gmsh.model.mesh.refine()
+
     gmsh.write("mesh3D.msh")
+
+def check_msh_file(directory):
+    for root, dirs, files in os.walk(directory):
+        for file in files:
+            if file.endswith(".msh"):
+                return True
+    return False
