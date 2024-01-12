@@ -10,11 +10,12 @@ class PBFModel(Setup,WeakForm,ICs,Output):
     Private (sub)-methods are defined in sub-classes that are
     inherited from.
     """
-    def __init__(self,mesh_path: str,degrees: dict) -> None:
+    def __init__(self,mesh_path: str,degrees: dict, timestep: float) -> None:
         self.mesh = Mesh(meshfile=mesh_path)
         #self.mesh = UnitCubeMesh(10,10,10, hexahedral=False)
         self.degrees = degrees
         self.time = 0.0
+        self.dt = timestep
     
     def setup(self,outfile,**kwargs) -> None:
         self._setup_finite_element()
