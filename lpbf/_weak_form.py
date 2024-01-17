@@ -3,14 +3,14 @@ from firedrake import (FacetNormal)
 from _dg import DGMethod
 
 class WeakForm(DGMethod):
-    def _setup_weak_form(self) -> None:
+    def _assemble_weak_form(self) -> None:
         self.residual_form = 0
         self.n = FacetNormal(self.mesh)
-        self.__setup_thermal_problem()
-        self.__setup_phase_problem()
-        self.__setup_pressure_problem()
+        self.__assemble_thermal_problem()
+        self.__assemble_phase_problem()
+        self.__assemble_pressure_problem()
 
-    def __setup_thermal_problem(self) -> None:
+    def __assemble_thermal_problem(self) -> None:
         kappa = 1
         T = self.functions[5]
         test = self.testFunctions[5]
@@ -26,7 +26,7 @@ class WeakForm(DGMethod):
             )
         )
     
-    def __setup_phase_problem(self) -> None:
+    def __assemble_phase_problem(self) -> None:
         solid, liquid, gas, _, u, _ = self.functions
         test_s, test_l, test_g, _, test_u, _ = self.testFunctions
 
@@ -58,7 +58,7 @@ class WeakForm(DGMethod):
             )
         )
 
-    def __setup_pressure_problem(self) -> None:
+    def __assemble_pressure_problem(self) -> None:
         p = self.functions[3]
         # We need a vector valued test function
         test_u = self.testFunctions[4]

@@ -35,3 +35,4 @@ dt = 1e-3
 
 model = PBFModel(mesh_path="mesh3d.msh",degrees=degrees, timestep=dt)
 model.setup("output/lpbf.pvd")
+model.assemble()

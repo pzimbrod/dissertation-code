@@ -26,7 +26,9 @@ class PBFModel(Setup,WeakForm,ICs,Output):
         # Set values for t = 0 to output
         self.timestep_update()
         self.write_output()
-        self._setup_weak_form()
+    
+    def assemble(self) -> None:
+        self._assemble_weak_form()
     
     def _project_initial_conditions(self) -> None:
         a_s, a_l, a_g, p, u, T = self.functions
