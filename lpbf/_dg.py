@@ -14,12 +14,23 @@ class DGMethod:
         """
         n = self.n
         F = (
-            inner(test, dot(velocity * u,n)) * dS            # Hull integral
-            - jump(test) * numerical_flux(velocity,n,u) * dS # Partial integration
+            jump(test) * numerical_flux(velocity,n,u) * dS # Hull integral
+            - inner(test, dot(velocity * u,n)) * dx        # Patrial integration
+        )
+        return F
+    
+    def _DG_grad(self, test: TestFunction, u: Function, numerical_flux) -> Form:
+        """
+        Computes the gradient of a field `u` in DG form.
+        """
+        n = self.n
+        F = (
+            dot(jump(test),numerical_flux(n, u)) * dS
+            - inner(div(test),u) * dx
         )
         return F
 
-    def _upwind(self,velocity: Function,n: FacetNormal, u: Function) -> Form:
+    def _upwind_vector(self,velocity: Function,n: FacetNormal, u: Function) -> Form:
         """
         Returns the DG upwind flux of an expression `(velocity * u)` 
         that is compatible with unstructured meshes, i.e. it is expressed
@@ -27,6 +38,15 @@ class DGMethod:
         """
         vel_n = 0.5*(dot(velocity, n) + abs(dot(velocity, n)))
         return jump(vel_n * u)
+    
+    def _upwind_scalar(self,n: FacetNormal, u: Function) -> Form:
+        """
+        Returns the DG upwind flux of an expression `u` 
+        that is compatible with unstructured meshes, i.e. it is expressed
+        in terms of jumps and averages.
+        """
+        flux = 0.5*(u * n + abs(u * n))
+        return jump(flux)
 
     def _lax_friedrichs(self,velocity: Function,n: FacetNormal, u: Function) -> Form:
         v_max = max(max(velocity),0)

@@ -8,6 +8,7 @@ class WeakForm(DGMethod):
         self.n = FacetNormal(self.mesh)
         self.__setup_thermal_problem()
         self.__setup_phase_problem()
+        self.__setup_pressure_problem()
 
     def __setup_thermal_problem(self) -> None:
         kappa = 1
@@ -35,7 +36,7 @@ class WeakForm(DGMethod):
             (solid.next - solid.previous) * test_s * dx
             + self.dt * (
             # Advection
-            - self._DG_div(test_s,velocity=u.next, u=solid.next,numerical_flux=self._upwind)
+            - self._DG_div(test_s,velocity=u.next, u=solid.next,numerical_flux=self._upwind_vector)
             )
         )
         # Liquid fraction
@@ -44,7 +45,7 @@ class WeakForm(DGMethod):
             (liquid.next - liquid.previous) * test_l * dx
             + self.dt * (
             # Advection
-            - self._DG_div(test_l,velocity=u.next, u=liquid.next,numerical_flux=self._upwind)
+            - self._DG_div(test_l,velocity=u.next, u=liquid.next,numerical_flux=self._upwind_vector)
             )
         )
         # Gas fraction
@@ -53,6 +54,13 @@ class WeakForm(DGMethod):
             (gas.next - gas.previous) * test_g * dx
             + self.dt * (
             # Advection
-            - self._DG_div(test_g,velocity=u.next, u=gas.next,numerical_flux=self._upwind)
+            - self._DG_div(test_g,velocity=u.next, u=gas.next,numerical_flux=self._upwind_vector)
             )
         )
+
+    def __setup_pressure_problem(self) -> None:
+        p = self.functions[3]
+        # We need a vector valued test function
+        test_u = self.testFunctions[4]
+
+        self.residual_form += self._DG_grad(test=test_u,u=p.next,numerical_flux=self._upwind_scalar)
