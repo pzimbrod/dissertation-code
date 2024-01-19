@@ -1,10 +1,8 @@
-from firedrake import H1
 import numpy as np
 from geometry import create_geometry, check_msh_file
 from mpi4py import MPI
 import os
 from PBFModel import PBFModel
-
 
 #========   Set this to True if you want to overwrite an existing mesh (if one is present) ==========#
 create_new_mesh = False
