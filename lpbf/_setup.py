@@ -4,20 +4,25 @@ from TimeDependentFunction import TimeDependentFunction
 
 class Setup:
     def _setup_finite_element(self) -> None:
-            fe_alphas = FiniteElement(self.types["alphas"],self.mesh.ufl_cell(),self.degrees["alphas"])
-            fe_p      = FiniteElement(self.types["p"],self.mesh.ufl_cell(),self.degrees["p"])
-            fe_u      = VectorElement(self.types["u"],self.mesh.ufl_cell(),self.degrees["u"])
-            fe_T      = FiniteElement(self.types["T"],self.mesh.ufl_cell(),self.degrees["T"])
-            # According to https://fenicsproject.org/pub/tutorial/html/._ftut1010.html,
-            # every variable needs its own FE
-            self.finite_element = MixedElement([
-                                                fe_alphas,  # solid phase
-                                                fe_alphas,  # liquid phase
-                                                fe_alphas,  # gaseous phase
-                                                fe_p,       # pressure
-                                                fe_u,       # velocity
-                                                fe_T,       # temperature
-                                                ])
+        cell = self.mesh.ufl_cell()
+        fe_alphas = FiniteElement(self.config["alphas"]["element"],cell,
+                                    self.config["alphas"]["degree"])
+        fe_p      = FiniteElement(self.config["p"]["element"],cell,
+                                    self.config["p"]["degree"])
+        fe_u      = VectorElement(self.config["u"]["element"],cell,
+                                    self.config["u"]["degree"])
+        fe_T      = FiniteElement(self.config["T"]["element"],cell,
+                                    self.config["T"]["degree"])
+        # According to https://fenicsproject.org/pub/tutorial/html/._ftut1010.html,
+        # every variable needs its own FE
+        self.finite_element = MixedElement([
+                                            fe_alphas,  # solid phase
+                                            fe_alphas,  # liquid phase
+                                            fe_alphas,  # gaseous phase
+                                            fe_p,       # pressure
+                                            fe_u,       # velocity
+                                            fe_T,       # temperature
+                                            ])
         
     def _setup_function_space(self) -> None:
         self.function_space = MixedFunctionSpace(spaces=self.finite_element,mesh=self.mesh)

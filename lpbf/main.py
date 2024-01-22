@@ -22,22 +22,15 @@ markers = [
     bottom_marker
 ]
 
-degrees = {
-    "alphas": 2,
-    "p"     : 1,
-    "u"     : 2,
-    "T"     : 3,
-}
-
-types = {
-    "alphas": "DG",
-    "p"     : "DG",
-    "u"     : "CG",
-    "T"     : "CG",
+config = {
+    "alphas":   {"element": "DG", "degree": 2},
+    "p":        {"element": "DG", "degree": 1},
+    "u":        {"element": "CG", "degree": 2},
+    "T":        {"element": "CG", "degree": 3},
 }
 
 dt = 1e-3
 
-model = PBFModel(mesh_path="mesh3d.msh",degrees=degrees, types=types, timestep=dt)
+model = PBFModel(mesh_path="mesh3d.msh",config=config, timestep=dt)
 model.setup(outfile="output/lpbf.pvd")
 model.assemble()

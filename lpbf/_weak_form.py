@@ -15,7 +15,7 @@ class WeakForm(FEOperator):
         kappa = 1
         T = self.functions[5]
         test = self.testFunctions[5]
-        eltype = self.types["T"]
+        eltype = self.config["T"]["element"]
         f = 1
         self.residual_form += (
             # Mass Matrix
@@ -32,7 +32,7 @@ class WeakForm(FEOperator):
         solid, liquid, gas, _, u, _ = self.functions
         test_s, test_l, test_g, _, test_u, _ = self.testFunctions
         u_solid, u_liquid, u_gas = u.next * solid.next, u.next * liquid.next, u.next * gas.next
-        eltype = self.types["alphas"]
+        eltype = self.config["alphas"]["element"]
 
         # Solid fraction
         self.residual_form += (
@@ -66,14 +66,14 @@ class WeakForm(FEOperator):
         p = self.functions[3]
         # We need a vector valued test function
         test_u = self.testFunctions[4]
-        eltype = self.types["p"]
+        eltype = self.config["p"]["element"]
 
         self.residual_form += self._gradient(type=eltype,test=test_u,u=p.next,numerical_flux=self._upwind_scalar)
     
     def __assemble_velocity_problem(self) -> None:
         p, u = self.functions[3], self.functions[4]
         test_p, test_u = self.testFunctions[3], self.testFunctions[4]
-        eltype = self.types["u"]
+        eltype = self.config["u"]["element"]
         self.residual_form += (
             # mass matrix
             self._time_derivative(test=test_u, u=u)
