@@ -29,8 +29,15 @@ degrees = {
     "T"     : 3,
 }
 
+types = {
+    "alphas": "DG",
+    "p"     : "DG",
+    "u"     : "CG",
+    "T"     : "CG",
+}
+
 dt = 1e-3
 
-model = PBFModel(mesh_path="mesh3d.msh",degrees=degrees, timestep=dt)
-model.setup("output/lpbf.pvd")
+model = PBFModel(mesh_path="mesh3d.msh",degrees=degrees, types=types, timestep=dt)
+model.setup(outfile="output/lpbf.pvd")
 model.assemble()

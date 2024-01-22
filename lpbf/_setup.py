@@ -4,10 +4,10 @@ from TimeDependentFunction import TimeDependentFunction
 
 class Setup:
     def _setup_finite_element(self) -> None:
-            fe_alphas = FiniteElement("DG",self.mesh.ufl_cell(),self.degrees["alphas"])
-            fe_p      = FiniteElement("DG",self.mesh.ufl_cell(),self.degrees["p"])
-            fe_u      = VectorElement("CG",self.mesh.ufl_cell(),self.degrees["u"])
-            fe_T      = FiniteElement("CG",self.mesh.ufl_cell(),self.degrees["T"])
+            fe_alphas = FiniteElement(self.types["alphas"],self.mesh.ufl_cell(),self.degrees["alphas"])
+            fe_p      = FiniteElement(self.types["p"],self.mesh.ufl_cell(),self.degrees["p"])
+            fe_u      = VectorElement(self.types["u"],self.mesh.ufl_cell(),self.degrees["u"])
+            fe_T      = FiniteElement(self.types["T"],self.mesh.ufl_cell(),self.degrees["T"])
             # According to https://fenicsproject.org/pub/tutorial/html/._ftut1010.html,
             # every variable needs its own FE
             self.finite_element = MixedElement([
