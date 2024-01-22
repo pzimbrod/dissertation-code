@@ -3,17 +3,32 @@ from _setup import Setup
 from _initial_conditions import ICs
 from _output import Output
 from _weak_form import WeakForm
+from _boundary_condition import BCs
 
-class PBFModel(Setup,WeakForm,ICs,Output):
+class PBFModel(Setup,WeakForm,ICs,BCs,Output):
     """
     Top level class for the PBF-LB/M problem.
     Private (sub)-methods are defined in sub-classes that are
     inherited from.
     """
-    def __init__(self,mesh_path: str,config: dict, timestep: float) -> None:
+    def __init__(self,mesh_path: str, config: dict, bc_markers: dict, timestep: float) -> None:
+        """
+        The constructor for `PBFModel`.
+
+        Args:
+        mesh_path (str): the OS relative path to the mesh file
+        config (dict): A dictionary of dictionaries with the following structure
+            keys: all PDE fields
+            values: the type of Finite Element (`element`) 
+                    and degree for each field (`degree`)
+        bc_markers (dict): a dictionary with integer values, enumerating the boundary
+            subdomains
+        timestep (float): the (for now) fixed time step for the Euler scheme
+        """
         self.mesh = Mesh(meshfile=mesh_path)
         #self.mesh = UnitCubeMesh(10,10,10, hexahedral=False)
         self.config = config
+        self.bc_markers = bc_markers
         self.time = 0.0
         self.dt = timestep
     
@@ -23,6 +38,7 @@ class PBFModel(Setup,WeakForm,ICs,Output):
         self._setup_functions()
         self._project_initial_conditions()
         self._create_output(filename=outfile,**kwargs)
+        bcs = self._setup_bcs()
         # Set values for t = 0 to output
         self.timestep_update()
         self.write_output()

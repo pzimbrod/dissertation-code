@@ -15,12 +15,12 @@ if not mesh_already_present or create_new_mesh:
     create_geometry()
 
 inlet_marker, outlet_marker, wall_marker, bottom_marker = 1, 3, 5, 7
-markers = [
-    inlet_marker,
-    outlet_marker,
-    wall_marker,
-    bottom_marker
-]
+markers = {
+    "inlet":    inlet_marker,
+    "outlet":   outlet_marker,
+    "walls":    wall_marker,
+    "bottom":   bottom_marker
+}
 
 config = {
     "alphas":   {"element": "DG", "degree": 2},
@@ -31,6 +31,6 @@ config = {
 
 dt = 1e-3
 
-model = PBFModel(mesh_path="mesh3d.msh",config=config, timestep=dt)
+model = PBFModel(mesh_path="mesh3d.msh",config=config, bc_markers=markers, timestep=dt)
 model.setup(outfile="output/lpbf.pvd")
 model.assemble()
