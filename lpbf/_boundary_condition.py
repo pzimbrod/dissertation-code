@@ -21,7 +21,7 @@ class BCs:
         bc_p = self.__setup_pressure_bc()
         bc_u = self.__setup_velocity_bc()
         bc_T = self.__setup_temperature_bc()
-        return [*bc_solid,*bc_liquid,*bc_gas,*bc_p,*bc_u,*bc_T]
+        self.bcs = [*bc_solid,*bc_liquid,*bc_gas,*bc_p,*bc_u,*bc_T]
     
     def __setup_solid_bc(self):
         fs = self.function_space.sub(0)

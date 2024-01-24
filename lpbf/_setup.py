@@ -1,5 +1,4 @@
-from firedrake import (FiniteElement, VectorElement, MixedElement, MixedFunctionSpace,
-                       TestFunctions)
+from firedrake import (FiniteElement, VectorElement, MixedElement, MixedFunctionSpace, Function, split, TestFunctions)
 from TimeDependentFunction import TimeDependentFunction
 
 class Setup:
@@ -39,10 +38,5 @@ class Setup:
         Returns a tuple of TimeDependentFunctions.
         """
         fs = self.function_space
-        alpha_solid = TimeDependentFunction(fs.sub(0), name="solid_fraction")
-        alpha_liquid = TimeDependentFunction(fs.sub(1), name="liquid_fraction")
-        alpha_gas = TimeDependentFunction(fs.sub(2), name="gas_fraction")
-        p = TimeDependentFunction(fs.sub(3), name="pressure")
-        u = TimeDependentFunction(fs.sub(4), name="velocity")
-        T = TimeDependentFunction(fs.sub(5), name="temperature")
-        return (alpha_solid, alpha_liquid, alpha_gas, p, u, T)
+        f = Function(fs)
+        self.solution = TimeDependentFunction(previous=f,next=f)

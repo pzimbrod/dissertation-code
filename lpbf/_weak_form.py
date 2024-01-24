@@ -1,9 +1,11 @@
 from ufl import (grad, div, jump, avg, inner, dot, dx, ds, dS)
-from firedrake import (FacetNormal)
+from firedrake import (FacetNormal, split)
 from _fe_operators import FEOperator
 
 class WeakForm(FEOperator):
     def _assemble_weak_form(self) -> None:
+        # Building the weak form using UFL must be done with split
+        # https://www.firedrakeproject.org/demos/camassaholm.py.html
         self.residual_form = 0
         self.n = FacetNormal(self.mesh)
         self.__assemble_thermal_problem()
@@ -13,31 +15,33 @@ class WeakForm(FEOperator):
 
     def __assemble_thermal_problem(self) -> None:
         kappa = 1
-        T = self.functions[5]
+        T_p = split(self.solution.previous)[5]
+        T_n = split(self.solution.next)[5]
         test = self.testFunctions[5]
         eltype = self.config["T"]["element"]
         f = 1
         self.residual_form += (
             # Mass Matrix
-            self._time_derivative(test=test,u=T)
+            self._time_derivative(test=test,u_previous=T_p,u_next=T_n)
             + self.dt * (
             # Laplacian
-            + kappa * self._laplacian(type=eltype,test=test,u=T.next)
+            + kappa * self._laplacian(type=eltype,test=test,u=T_n)
             # Right hand side
             - f * test * dx
             )
         )
     
     def __assemble_phase_problem(self) -> None:
-        solid, liquid, gas, _, u, _ = self.functions
+        solid_p, liquid_p, gas_p, _, u_p, _ = split(self.solution.previous)
+        solid_n, liquid_n, gas_n, _, u_n, _ = split(self.solution.next)
         test_s, test_l, test_g, _, test_u, _ = self.testFunctions
-        u_solid, u_liquid, u_gas = u.next * solid.next, u.next * liquid.next, u.next * gas.next
+        u_solid, u_liquid, u_gas = u_n * solid_n, u_n * liquid_n, u_n * gas_n
         eltype = self.config["alphas"]["element"]
 
         # Solid fraction
         self.residual_form += (
             # Mass Matrix
-            self._time_derivative(test=test_s, u=solid)
+            self._time_derivative(test=test_s, u_previous=solid_p,u_next=solid_n)
             + self.dt * (
             # Advection
             - self._divergence(type=eltype,test=test_s,u=u_solid,numerical_flux=self._upwind_vector)
@@ -46,7 +50,7 @@ class WeakForm(FEOperator):
         # Liquid fraction
         self.residual_form += (
             # Mass Matrix
-            self._time_derivative(test=test_l, u=liquid)
+            self._time_derivative(test=test_l, u_previous=liquid_p,u_next=liquid_n)
             + self.dt * (
             # Advection
             - self._divergence(type=eltype,test=test_l,u=u_liquid,numerical_flux=self._upwind_vector)
@@ -55,7 +59,7 @@ class WeakForm(FEOperator):
         # Gas fraction
         self.residual_form += (
             # Mass Matrix
-            self._time_derivative(test=test_g, u=gas)
+            self._time_derivative(test=test_g, u_previous=gas_p,u_next=gas_n)
             + self.dt * (
             # Advection
             - self._divergence(type=eltype,test=test_g,u=u_gas,numerical_flux=self._upwind_vector)
@@ -63,24 +67,28 @@ class WeakForm(FEOperator):
         )
 
     def __assemble_pressure_problem(self) -> None:
-        p = self.functions[3]
+        p = split(self.solution.next)[3]
         # We need a vector valued test function
         test_u = self.testFunctions[4]
-        eltype = self.config["p"]["element"]
+        # Pressure constraint does not have any sense of wind, thus
+        # no flux term
+        # c.f. https://arxiv.org/pdf/2203.14881.pdf
+        eltype = "CG"
 
-        self.residual_form += self._gradient(type=eltype,test=test_u,u=p.next,numerical_flux=self._upwind_scalar)
+        self.residual_form += self._gradient(type=eltype,test=test_u,u=p,numerical_flux=self._upwind_scalar)
     
     def __assemble_velocity_problem(self) -> None:
-        p, u = self.functions[3], self.functions[4]
+        p_n, u_n = split(self.solution.next)[3], split(self.solution.next)[4]
+        u_p = split(self.solution.previous)[4]
         test_p, test_u = self.testFunctions[3], self.testFunctions[4]
         eltype = self.config["u"]["element"]
         self.residual_form += (
             # mass matrix
-            self._time_derivative(test=test_u, u=u)
+            self._time_derivative(test=test_u, u_previous=u_p, u_next=u_n)
             + self.dt * (
                 # continuity
-                self._divergence(type=eltype, test=test_p, u=u.next)
+                self._divergence(type=eltype, test=test_p, u=u_n)
                 # viscosity
-                - self._laplacian(type=eltype, test=test_u, u=u.next)
+                - self._laplacian(type=eltype, test=test_u, u=u_n)
             )
         )

@@ -4,8 +4,9 @@ from _initial_conditions import ICs
 from _output import Output
 from _weak_form import WeakForm
 from _boundary_condition import BCs
+from _solver import Solver
 
-class PBFModel(Setup,WeakForm,ICs,BCs,Output):
+class PBFModel(Setup,WeakForm,ICs,BCs,Solver,Output):
     """
     Top level class for the PBF-LB/M problem.
     Private (sub)-methods are defined in sub-classes that are
@@ -38,25 +39,29 @@ class PBFModel(Setup,WeakForm,ICs,BCs,Output):
         self._setup_functions()
         self._project_initial_conditions()
         self._create_output(filename=outfile,**kwargs)
-        bcs = self._setup_bcs()
+        self._setup_bcs()
         # Set values for t = 0 to output
         self.timestep_update()
         self.write_output()
     
     def assemble(self) -> None:
         self._assemble_weak_form()
+        self._assemble_problem()
+        self._assemble_solver()
     
     def _project_initial_conditions(self) -> None:
-        a_s, a_l, a_g, p, u, T = self.functions
+        # Data access must be done using `subfunctions`
+        # https://www.firedrakeproject.org/demos/camassaholm.py.html
+        a_s, a_l, a_g, p, u, T = self.solution.next.subfunctions
 
         # Temperature
-        self._set_IC_T(T=T.next)
+        self._set_IC_T(T=T)
         # Velocity
-        self._set_IC_u(u=u.next)
+        self._set_IC_u(u=u)
         # Phase fractions
-        self._set_IC_phases(gas=a_g.next,solid=a_s.next)
+        self._set_IC_phases(gas=a_g,solid=a_s)
     
     def timestep_update(self) -> None:
-        for fun in self.functions:
-            fun.previous.assign(fun.next)
-        return
+        # Data access must be done using `subfunctions`
+        # https://www.firedrakeproject.org/demos/camassaholm.py.html
+        self.solution.previous.assign(self.solution.next)

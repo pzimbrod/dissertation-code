@@ -8,12 +8,12 @@ class FEOperator:
     Discontinuous Galerkin (DG) weak formulations.
     """
 
-    def _time_derivative(self, test: TestFunction, u: TimeDependentFunction) -> Form:
+    def _time_derivative(self, test: TestFunction, u_previous, u_next) -> Form:
         """
         Computes the mass matrix of a function `u` using the `TimeDependentFunction`
         class, which holds the values of `u` at different time steps.
         """
-        F = inner(test, u.next - u.previous) * dx
+        F = inner(test, u_next - u_previous) * dx
         return F
     
     def _divergence(self, type: str, test: TestFunction, u,

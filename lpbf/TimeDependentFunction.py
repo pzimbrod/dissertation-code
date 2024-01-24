@@ -6,8 +6,6 @@ class TimeDependentFunction:
     It only has two Functions as attributes: the previous value (t) and
     the next one (t+1).
     """
-    def __init__(self,fs: FunctionSpace, name: str) -> None:
-        fn_previous = Function(fs, name=f"{name}_previous")
-        fn_next = Function(fs, name=f"{name}_current")
-        self.previous = fn_previous
-        self.next     = fn_next
+    def __init__(self,previous, next) -> None:
+        self.previous = previous
+        self.next     = next

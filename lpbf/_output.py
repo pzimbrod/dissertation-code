@@ -7,4 +7,4 @@ class Output:
     def write_output(self):
         # The error 'int object is not iterable' only appears
         # with hexahedral meshes
-        self.outfile.write(*[fun.next for fun in self.functions], time=self.time)
+        self.outfile.write(*[fun for fun in self.solution.next.subfunctions], time=self.time)
