@@ -4,7 +4,6 @@ from mpi4py import MPI
 import os
 from PBFModel import PBFModel
 import firedrake
-from firedrake import parameters
 
 #========   Set this to True if you want to overwrite an existing mesh (if one is present) ==========#
 create_new_mesh = False
@@ -25,19 +24,17 @@ markers = {
 }
 
 config = {
-    "alphas":   {"element": "DG", "degree": 2},
+    "alphas":   {"element": "DG", "degree": 1},
     "p":        {"element": "DG", "degree": 1},
-    "u":        {"element": "CG", "degree": 2},
-    "T":        {"element": "CG", "degree": 3},
+    "u":        {"element": "CG", "degree": 1},
+    "T":        {"element": "CG", "degree": 1},
 }
 
 dt = 1e-3
 
-firedrake.set_log_level('DEBUG')
-parameters["pyop2_options"]["log_level"] = "DEBUG"
-parameters["form_compiler"]["log_level"] = "DEBUG"
 model = PBFModel(mesh_path="mesh3d.msh",config=config, bc_markers=markers, timestep=dt)
 model.setup(outfile="output/lpbf.pvd")
 
 model.assemble()
+model.build_solver()
 #model.solve()

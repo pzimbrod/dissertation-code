@@ -46,8 +46,10 @@ class PBFModel(Setup,WeakForm,ICs,BCs,Solver,Output):
     
     def assemble(self) -> None:
         self._assemble_weak_form()
+
+    def build_solver(self, solver_parameters: dict | None = None) -> None:
         self._assemble_problem()
-        self._assemble_solver()
+        self._assemble_solver(solver_parameters)
     
     def _project_initial_conditions(self) -> None:
         # Data access must be done using `subfunctions`

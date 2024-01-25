@@ -1,5 +1,5 @@
 from ufl import (grad, div, jump, avg, inner, dot, dx, ds, dS)
-from firedrake import (FacetNormal, split)
+from firedrake import (FacetNormal, split, Constant)
 from _fe_operators import FEOperator
 
 class WeakForm(FEOperator):
@@ -19,16 +19,14 @@ class WeakForm(FEOperator):
         T_n = split(self.solution.next)[5]
         test = self.testFunctions[5]
         eltype = self.config["T"]["element"]
-        f = 1
+        f = Constant(0.0)
         self.residual_form += (
             # Mass Matrix
             self._time_derivative(test=test,u_previous=T_p,u_next=T_n)
-            + self.dt * (
             # Laplacian
             + kappa * self._laplacian(type=eltype,test=test,u=T_n)
             # Right hand side
             - f * test * dx
-            )
         )
     
     def __assemble_phase_problem(self) -> None:
@@ -42,28 +40,22 @@ class WeakForm(FEOperator):
         self.residual_form += (
             # Mass Matrix
             self._time_derivative(test=test_s, u_previous=solid_p,u_next=solid_n)
-            + self.dt * (
             # Advection
             - self._divergence(type=eltype,test=test_s,u=u_solid,numerical_flux=self._upwind_vector)
-            )
         )
         # Liquid fraction
         self.residual_form += (
             # Mass Matrix
             self._time_derivative(test=test_l, u_previous=liquid_p,u_next=liquid_n)
-            + self.dt * (
             # Advection
             - self._divergence(type=eltype,test=test_l,u=u_liquid,numerical_flux=self._upwind_vector)
-            )
         )
         # Gas fraction
         self.residual_form += (
             # Mass Matrix
             self._time_derivative(test=test_g, u_previous=gas_p,u_next=gas_n)
-            + self.dt * (
             # Advection
             - self._divergence(type=eltype,test=test_g,u=u_gas,numerical_flux=self._upwind_vector)
-            )
         )
 
     def __assemble_pressure_problem(self) -> None:
@@ -85,10 +77,8 @@ class WeakForm(FEOperator):
         self.residual_form += (
             # mass matrix
             self._time_derivative(test=test_u, u_previous=u_p, u_next=u_n)
-            + self.dt * (
-                # continuity
-                self._divergence(type=eltype, test=test_p, u=u_n)
-                # viscosity
-                - self._laplacian(type=eltype, test=test_u, u=u_n)
-            )
+            # continuity
+            + self._divergence(type=eltype, test=test_p, u=u_n)
+            # viscosity
+            - self._laplacian(type=eltype, test=test_u, u=u_n)
         )

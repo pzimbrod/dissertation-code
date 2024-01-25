@@ -13,7 +13,8 @@ class FEOperator:
         Computes the mass matrix of a function `u` using the `TimeDependentFunction`
         class, which holds the values of `u` at different time steps.
         """
-        F = inner(test, u_next - u_previous) * dx
+        dt = self.dt
+        F = inner(test, u_next - u_previous) / dt * dx
         return F
     
     def _divergence(self, type: str, test: TestFunction, u,
