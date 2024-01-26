@@ -26,7 +26,8 @@ class Setup:
                                             ])
         
     def _setup_function_space(self) -> None:
-        self.function_space = FunctionSpace(spaces=self.finite_element,mesh=self.mesh)
+        self.function_space = FunctionSpace(mesh=self.mesh,
+                                            element=self.finite_element)
 
     def _setup_functions(self) -> None:
         fs = self.function_space

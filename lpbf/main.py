@@ -23,10 +23,10 @@ markers = {
 }
 
 config = {
-    "alphas":   {"element": "DG", "degree": 1},
+    "alphas":   {"element": "DG", "degree": 2},
     "p":        {"element": "DG", "degree": 1},
-    "u":        {"element": "CG", "degree": 1},
-    "T":        {"element": "CG", "degree": 1},
+    "u":        {"element": "CG", "degree": 2},
+    "T":        {"element": "CG", "degree": 3},
 }
 
 dt = 1e-3
