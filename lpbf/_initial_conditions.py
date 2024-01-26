@@ -24,7 +24,7 @@ class ICs:
             return np.zeros((1,x.shape[1]))
         
         def IC_gas(x,height=0.2):
-            return np.where(x[2] > height, 0.0, 1.0)
+            return np.where(x[2] > height, 1.0, 0.0)
 
         solid.interpolate(IC_solid)
         liquid.interpolate(IC_liquid)
@@ -34,7 +34,7 @@ class ICs:
         def IC_u(x, height=0.3):
             dim = self.mesh.topology.dim
             values = np.zeros((dim,x.shape[1]))
-            cond = np.argwhere(x[1] > height)
+            cond = np.argwhere(x[2] > height)
             values[1,cond] = 1.0
             return values
         
