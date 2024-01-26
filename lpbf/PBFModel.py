@@ -37,12 +37,12 @@ class PBFModel(Setup,WeakForm,ICs,BCs,Solver,Output):
         self.time = 0.0
         self.dt = timestep
     
-    def setup(self,outfile,**kwargs) -> None:
+    def setup(self,filename,**kwargs) -> None:
         self._setup_finite_element()
         self._setup_function_space()
         self._setup_functions()
         self._project_initial_conditions()
-        self._create_output(filename=outfile,**kwargs)
+        self._create_output(filename=filename,**kwargs)
         self._setup_bcs()
         # Set values for t = 0 to output
         self.timestep_update()

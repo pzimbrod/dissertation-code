@@ -32,7 +32,7 @@ config = {
 dt = 1e-3
 
 model = PBFModel(mesh_path="mesh3d.msh",config=config, bc_markers=markers, timestep=dt)
-model.setup(outfile="output/lpbf.pvd")
+model.setup(filename="output/lpbf.xdmf")
 
 model.assemble()
 model.build_solver()
