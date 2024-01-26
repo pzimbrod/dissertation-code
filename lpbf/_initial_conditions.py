@@ -1,39 +1,47 @@
-from firedrake import (Function, conditional, SpatialCoordinate,
-                       as_vector, Constant)
+from dolfinx.fem import (Function)
 import numpy as np
 
 class ICs:
+    def _project_initial_conditions(self) -> None:
+        # Data access must be done using `subfunctions`
+        # https://www.firedrakeproject.org/demos/camassaholm.py.html
+        a_s, a_l, a_g, p, u, T = self.solution.next.split()
+
+        # Temperature
+        self._set_IC_T(T=T)
+        # Velocity
+        self._set_IC_u(u=u)
+        # Phase fractions
+        self._set_IC_phases(gas=a_g,solid=a_s)
+
     def _set_IC_T(self, T: Function) -> None:
-        mesh = self.mesh
-        x, y, z = SpatialCoordinate(mesh)
-        ## Ambient temperature
-        T_ambient = 273.
-        ## Pre-heated, solidified material
-        T_base = 498
-        solid_height = 0.2
-        expr = conditional( z <= solid_height, T_base, T_ambient)
-        T.interpolate(expr)
+        def IC_T(x, T_ambient=273.0, T_base = 498.0, height = 0.2):
+            return np.where(x[2] <= height, T_base, T_ambient)
+
+        T.interpolate(IC_T)
         return
 
     def _set_IC_u(self, u: Function) -> None:
-        mesh = self.mesh
-        x, y, z = SpatialCoordinate(mesh)
-        shield_gas_height = 0.3
 
-        expr = conditional( z <= shield_gas_height, 
-                           as_vector([0.0,0.0,0.0]),
-                           as_vector([0.0,1.0,0.0])
-        )
-        u.interpolate(expr)
+        def IC_u(x, height=0.3):
+            return np.where(x[2] <= height,
+                            np.array((0.0,0.0,0.0)),
+                            np.array((0.0,1.0,0.0)))
+
+        u.interpolate(IC_u)
         return
 
-    def _set_IC_phases(self, gas: Function, solid: Function) -> None:
-        mesh = self.mesh
-        x, y, z = SpatialCoordinate(mesh)
+    def _set_IC_phases(self, solid: Function, liquid: Function, gas: Function) -> None:
+        def IC_solid(x,height=0.2):
+            return np.where(x <= height, 1.0, 0.0)
+        
+        def IC_liquid(x):
+            return np.array((0.0))
+        
+        def IC_gas(x,height=0.2):
+            return np.where(x > height, 0.0, 1.0)
 
-        solid_height = 0.2
-        expr_solid = conditional( z <= solid_height, 1.0, 0.0)
-        expr_gas = conditional( z <= solid_height, 0.0, 1.0)
-        solid.interpolate(expr_solid)
-        gas.interpolate(expr_gas)
+        solid.interpolate(IC_solid)
+        liquid.interpolate(IC_liquid)
+        gas.interpolate(IC_gas)
         return

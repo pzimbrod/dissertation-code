@@ -1,5 +1,6 @@
-from ufl import (grad, div, jump, avg, inner, dot, dx, ds, dS)
-from firedrake import (FacetNormal, split, Constant)
+from ufl import (grad, div, jump, avg, inner, dot, dx, ds, dS, FacetNormal)
+from dolfinx.fem import (Constant)
+#from firedrake import (FacetNormal, split, Constant)
 from _fe_operators import FEOperator
 
 class WeakForm(FEOperator):
@@ -15,8 +16,8 @@ class WeakForm(FEOperator):
 
     def __assemble_thermal_problem(self) -> None:
         kappa = 1
-        T_p = split(self.solution.previous)[5]
-        T_n = split(self.solution.next)[5]
+        T_p = self.solution.previous.sub[5]
+        T_n = self.solution.next.sub[5]
         test = self.testFunctions[5]
         eltype = self.config["T"]["element"]
         f = Constant(0.0)
@@ -30,8 +31,8 @@ class WeakForm(FEOperator):
         )
     
     def __assemble_phase_problem(self) -> None:
-        solid_p, liquid_p, gas_p, _, u_p, _ = split(self.solution.previous)
-        solid_n, liquid_n, gas_n, _, u_n, _ = split(self.solution.next)
+        solid_p, liquid_p, gas_p, _, u_p, _ = self.solution.previous.split()
+        solid_n, liquid_n, gas_n, _, u_n, _ = self.solution.next.split()
         test_s, test_l, test_g, _, test_u, _ = self.testFunctions
         u_solid, u_liquid, u_gas = u_n * solid_n, u_n * liquid_n, u_n * gas_n
         eltype = self.config["alphas"]["element"]
@@ -59,7 +60,7 @@ class WeakForm(FEOperator):
         )
 
     def __assemble_pressure_problem(self) -> None:
-        p = split(self.solution.next)[3]
+        p = self.solution.next.sub(3)
         # We need a vector valued test function
         test_u = self.testFunctions[4]
         # Pressure constraint does not have any sense of wind, thus
@@ -70,8 +71,8 @@ class WeakForm(FEOperator):
         self.residual_form += self._gradient(type=eltype,test=test_u,u=p,numerical_flux=self._upwind_scalar)
     
     def __assemble_velocity_problem(self) -> None:
-        p_n, u_n = split(self.solution.next)[3], split(self.solution.next)[4]
-        u_p = split(self.solution.previous)[4]
+        p_n, u_n = self.solution.next.sub(3), self.solution.next.sub(4)
+        u_p = self.solution.previous.sub(4)
         test_p, test_u = self.testFunctions[3], self.testFunctions[4]
         eltype = self.config["u"]["element"]
         self.residual_form += (

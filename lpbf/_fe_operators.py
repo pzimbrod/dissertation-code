@@ -1,5 +1,7 @@
-from ufl import (dot, inner, grad, jump, avg, div, dx, ds, dS, Form)
-from firedrake import (TestFunction, Function, FacetNormal)
+from ufl import (dot, inner, grad, jump, avg, div, dx, ds, dS, Form, TestFunction,
+                 FacetNormal)
+from dolfinx.fem import (Function)
+#from firedrake import (TestFunction, Function, FacetNormal)
 from TimeDependentFunction import TimeDependentFunction
 
 class FEOperator:

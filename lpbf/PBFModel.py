@@ -1,4 +1,6 @@
-from firedrake import Mesh, UnitCubeMesh
+#from firedrake import Mesh, UnitCubeMesh
+from dolfinx.io import gmshio
+from mpi4py import MPI
 from _setup import Setup
 from _initial_conditions import ICs
 from _output import Output
@@ -26,7 +28,9 @@ class PBFModel(Setup,WeakForm,ICs,BCs,Solver,Output):
             subdomains
         timestep (float): the (for now) fixed time step for the Euler scheme
         """
-        self.mesh = Mesh(meshfile=mesh_path)
+        self.mesh, self.cell_tags, self.facet_tags = gmshio.read_from_msh(
+            filename=mesh_path,comm=MPI.COMM_WORLD)
+        #self.mesh = Mesh(meshfile=mesh_path)
         #self.mesh = UnitCubeMesh(10,10,10, hexahedral=False)
         self.config = config
         self.bc_markers = bc_markers
@@ -51,19 +55,7 @@ class PBFModel(Setup,WeakForm,ICs,BCs,Solver,Output):
         self._assemble_problem()
         self._assemble_solver(solver_parameters)
     
-    def _project_initial_conditions(self) -> None:
-        # Data access must be done using `subfunctions`
-        # https://www.firedrakeproject.org/demos/camassaholm.py.html
-        a_s, a_l, a_g, p, u, T = self.solution.next.subfunctions
-
-        # Temperature
-        self._set_IC_T(T=T)
-        # Velocity
-        self._set_IC_u(u=u)
-        # Phase fractions
-        self._set_IC_phases(gas=a_g,solid=a_s)
-    
     def timestep_update(self) -> None:
         # Data access must be done using `subfunctions`
         # https://www.firedrakeproject.org/demos/camassaholm.py.html
-        self.solution.previous.assign(self.solution.next)
+        self.solution.previous.x.array[:] = self.solution.next.x.array[:]

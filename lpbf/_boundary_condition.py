@@ -1,4 +1,4 @@
-from firedrake import (DirichletBC,Constant)
+from dolfinx.fem import (dirichletbc, Constant)
 
 class BCs:
     """
@@ -26,50 +26,50 @@ class BCs:
     def __setup_solid_bc(self):
         fs = self.function_space.sub(0)
         val_inlet = Constant(0.0)
-        bc_inlet = DirichletBC(V=fs,g=val_inlet,
+        bc_inlet = dirichletbc(V=fs,g=val_inlet,
                          sub_domain=self.bc_markers["inlet"])
         val_bottom = Constant(1.0)
-        bc_bottom = DirichletBC(V=fs,g=val_bottom,
+        bc_bottom = dirichletbc(V=fs,g=val_bottom,
                          sub_domain=self.bc_markers["bottom"])
         return [bc_inlet,bc_bottom]
     
     def __setup_liquid_bc(self):
         fs = self.function_space.sub(1)
         val_inlet = Constant(0.0)
-        bc_inlet = DirichletBC(V=fs,g=val_inlet,
+        bc_inlet = dirichletbc(V=fs,g=val_inlet,
                          sub_domain=self.bc_markers["inlet"])
         val_bottom = Constant(0.0)
-        bc_bottom = DirichletBC(V=fs,g=val_bottom,
+        bc_bottom = dirichletbc(V=fs,g=val_bottom,
                          sub_domain=self.bc_markers["bottom"])
         return [bc_inlet,bc_bottom]
 
     def __setup_gas_bc(self):
         fs = self.function_space.sub(2)
         val_inlet = Constant(1.0)
-        bc_inlet = DirichletBC(V=fs,g=val_inlet,
+        bc_inlet = dirichletbc(V=fs,g=val_inlet,
                          sub_domain=self.bc_markers["inlet"])
         val_bottom = Constant(0.0)
-        bc_bottom = DirichletBC(V=fs,g=val_bottom,
+        bc_bottom = dirichletbc(V=fs,g=val_bottom,
                          sub_domain=self.bc_markers["bottom"])
         return [bc_inlet,bc_bottom]
 
     def __setup_pressure_bc(self):
         fs = self.function_space.sub(3)
         val = Constant(0.0)
-        bc = DirichletBC(V=fs,g=val,
+        bc = dirichletbc(V=fs,g=val,
                          sub_domain=self.bc_markers["outlet"])
         return [bc]
     
     def __setup_velocity_bc(self):
         fs = self.function_space.sub(4)
         val = Constant((0.0,1.0, 0.0))
-        bc = DirichletBC(V=fs,g=val,
+        bc = dirichletbc(V=fs,g=val,
                          sub_domain=self.bc_markers["inlet"])
         return [bc]
     
     def __setup_temperature_bc(self):
         fs = self.function_space.sub(5)
         val = Constant(473.0)
-        bc = DirichletBC(V=fs,g=val,
+        bc = dirichletbc(V=fs,g=val,
                          sub_domain=self.bc_markers["bottom"])
         return [bc]

@@ -1,4 +1,4 @@
-from firedrake import FunctionSpace, Function
+from dolfinx.fem import Function
 
 class TimeDependentFunction:
     """
@@ -6,6 +6,6 @@ class TimeDependentFunction:
     It only has two Functions as attributes: the previous value (t) and
     the next one (t+1).
     """
-    def __init__(self,previous, next) -> None:
+    def __init__(self,previous: Function, next: Function) -> None:
         self.previous = previous
         self.next     = next

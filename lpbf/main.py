@@ -3,7 +3,6 @@ from geometry import create_geometry, check_msh_file
 from mpi4py import MPI
 import os
 from PBFModel import PBFModel
-import firedrake
 
 #========   Set this to True if you want to overwrite an existing mesh (if one is present) ==========#
 create_new_mesh = False
@@ -37,4 +36,6 @@ model.setup(outfile="output/lpbf.pvd")
 
 model.assemble()
 model.build_solver()
-#model.solve()
+
+print("Starting solve!")
+model.solve()

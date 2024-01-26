@@ -1,4 +1,6 @@
-from firedrake import (FiniteElement, VectorElement, MixedElement, MixedFunctionSpace, Function, split, TestFunctions)
+from ufl import (FiniteElement, VectorElement, MixedElement, TestFunctions)
+from dolfinx.fem import (Function, FunctionSpace)
+#from firedrake import (FiniteElement, VectorElement, MixedElement, MixedFunctionSpace, Function, split, TestFunctions)
 from TimeDependentFunction import TimeDependentFunction
 
 class Setup:
@@ -24,7 +26,7 @@ class Setup:
                                             ])
         
     def _setup_function_space(self) -> None:
-        self.function_space = MixedFunctionSpace(spaces=self.finite_element,mesh=self.mesh)
+        self.function_space = FunctionSpace(spaces=self.finite_element,mesh=self.mesh)
 
     def _setup_functions(self) -> None:
         fs = self.function_space
