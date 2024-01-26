@@ -1,4 +1,6 @@
-from dolfinx.fem import (dirichletbc, Constant)
+from dolfinx.fem import (dirichletbc, FunctionSpace, Function,
+                         Constant, locate_dofs_topological)
+import numpy as np
 
 class BCs:
     """
@@ -15,6 +17,7 @@ class BCs:
     """
 
     def _setup_bcs(self):
+        self.facet_dim = self.mesh.topology.dim - 1
         bc_solid = self.__setup_solid_bc()
         bc_liquid = self.__setup_liquid_bc()
         bc_gas = self.__setup_gas_bc()
@@ -23,53 +26,69 @@ class BCs:
         bc_T = self.__setup_temperature_bc()
         self.bcs = [*bc_solid,*bc_liquid,*bc_gas,*bc_p,*bc_u,*bc_T]
     
-    def __setup_solid_bc(self):
+    def __get_boundary_dofs(self, fs: FunctionSpace, marker: str) -> np.ndarray:
+        return locate_dofs_topological(V=fs,entity_dim=self.facet_dim,
+                                       entities=self.bc_markers[marker])
+    
+    def __setup_solid_bc(self) -> None:
+        mesh = self.mesh
         fs = self.function_space.sub(0)
-        val_inlet = Constant(0.0)
-        bc_inlet = dirichletbc(V=fs,g=val_inlet,
-                         sub_domain=self.bc_markers["inlet"])
-        val_bottom = Constant(1.0)
-        bc_bottom = dirichletbc(V=fs,g=val_bottom,
-                         sub_domain=self.bc_markers["bottom"])
+        val_inlet = Constant(mesh,0.0)
+        inlet_dofs = self.__get_boundary_dofs(fs=fs,marker="inlet")
+        bottom_dofs = self.__get_boundary_dofs(fs=fs,marker="bottom")
+        bc_inlet = dirichletbc(V=fs,value=val_inlet,dofs=inlet_dofs)
+        val_bottom = Constant(mesh,1.0)
+        bc_bottom = dirichletbc(V=fs,value=val_bottom,dofs=bottom_dofs)
         return [bc_inlet,bc_bottom]
     
-    def __setup_liquid_bc(self):
+    def __setup_liquid_bc(self) -> None:
+        mesh = self.mesh
         fs = self.function_space.sub(1)
-        val_inlet = Constant(0.0)
-        bc_inlet = dirichletbc(V=fs,g=val_inlet,
-                         sub_domain=self.bc_markers["inlet"])
-        val_bottom = Constant(0.0)
-        bc_bottom = dirichletbc(V=fs,g=val_bottom,
-                         sub_domain=self.bc_markers["bottom"])
+        inlet_dofs = self.__get_boundary_dofs(fs=fs,marker="inlet")
+        bottom_dofs = self.__get_boundary_dofs(fs=fs,marker="bottom")
+        val_inlet = Constant(mesh,0.0)
+        bc_inlet = dirichletbc(V=fs,value=val_inlet,dofs=inlet_dofs)
+        val_bottom = Constant(mesh,0.0)
+        bc_bottom = dirichletbc(V=fs,value=val_bottom,dofs=bottom_dofs)
         return [bc_inlet,bc_bottom]
 
-    def __setup_gas_bc(self):
+    def __setup_gas_bc(self) -> None:
+        mesh = self.mesh
         fs = self.function_space.sub(2)
-        val_inlet = Constant(1.0)
-        bc_inlet = dirichletbc(V=fs,g=val_inlet,
-                         sub_domain=self.bc_markers["inlet"])
-        val_bottom = Constant(0.0)
-        bc_bottom = dirichletbc(V=fs,g=val_bottom,
-                         sub_domain=self.bc_markers["bottom"])
+        inlet_dofs = self.__get_boundary_dofs(fs=fs,marker="inlet")
+        bottom_dofs = self.__get_boundary_dofs(fs=fs,marker="bottom")
+        val_inlet = Constant(mesh,1.0)
+        bc_inlet = dirichletbc(V=fs,value=val_inlet,dofs=inlet_dofs)
+        val_bottom = Constant(mesh,0.0)
+        bc_bottom = dirichletbc(V=fs,value=val_bottom,dofs=bottom_dofs)
         return [bc_inlet,bc_bottom]
 
-    def __setup_pressure_bc(self):
+    def __setup_pressure_bc(self) -> None:
+        mesh = self.mesh
         fs = self.function_space.sub(3)
-        val = Constant(0.0)
-        bc = dirichletbc(V=fs,g=val,
-                         sub_domain=self.bc_markers["outlet"])
+        outlet_dofs = self.__get_boundary_dofs(fs=fs,marker="outlet")
+        val = Constant(mesh,0.0)
+        bc = dirichletbc(V=fs,value=val,dofs=outlet_dofs)
         return [bc]
     
-    def __setup_velocity_bc(self):
+    def __setup_velocity_bc(self) -> None:
+        mesh = self.mesh
         fs = self.function_space.sub(4)
-        val = Constant((0.0,1.0, 0.0))
-        bc = dirichletbc(V=fs,g=val,
-                         sub_domain=self.bc_markers["inlet"])
+        inlet_dofs = self.__get_boundary_dofs(fs=fs,marker="inlet")
+        u_bc = Function(self.function_space).sub(4)
+        def BC_u(x):
+            dim = self.mesh.topology.dim
+            values = np.zeros((dim,x.shape[1]))
+            values[1,:] = 1.0
+            return values
+        u_bc.interpolate(BC_u)
+        bc = dirichletbc(value=u_bc,dofs=inlet_dofs)
         return [bc]
     
-    def __setup_temperature_bc(self):
+    def __setup_temperature_bc(self) -> None:
+        mesh = self.mesh
         fs = self.function_space.sub(5)
-        val = Constant(473.0)
-        bc = dirichletbc(V=fs,g=val,
-                         sub_domain=self.bc_markers["bottom"])
+        bottom_dofs = self.__get_boundary_dofs(fs=fs,marker="bottom")
+        val = Constant(mesh,473.0)
+        bc = dirichletbc(V=fs,value=val,dofs=bottom_dofs)
         return [bc]

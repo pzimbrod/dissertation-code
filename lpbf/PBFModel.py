@@ -30,8 +30,9 @@ class PBFModel(Setup,WeakForm,ICs,BCs,Solver,Output):
         """
         self.mesh, self.cell_tags, self.facet_tags = gmshio.read_from_msh(
             filename=mesh_path,comm=MPI.COMM_WORLD)
-        #self.mesh = Mesh(meshfile=mesh_path)
-        #self.mesh = UnitCubeMesh(10,10,10, hexahedral=False)
+        # Make sure the cell-facet connectivity exists for BCs
+        dim = self.mesh.topology.dim
+        self.mesh.topology.create_connectivity(dim,dim-1)
         self.config = config
         self.bc_markers = bc_markers
         self.time = 0.0
