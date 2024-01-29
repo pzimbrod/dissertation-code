@@ -15,6 +15,8 @@ class ICs:
         self._set_IC_p(p=p)
         # Temperature
         self._set_IC_T(T=T)
+        self.solution.previous.x.scatter_forward()
+        self.solution.next.x.scatter_forward()
 
     def _set_IC_phases(self, solid: Function, liquid: Function, gas: Function) -> None:
         def IC_solid(x,height=0.2):
