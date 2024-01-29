@@ -12,7 +12,7 @@ class BCs:
     alpha_liquid  | 0 Dirichlet     0 Neumann       0 Dirichlet     0 Neumann
     alpha_gas     | 1 Dirichlet     0 Neumann       0 Dirichlet     0 Neumann
     p             | 0 Neumann       0 Dirichlet     0 Neumann       0 Neumann
-    u             | 1 Dirichlet     0 Neumann       0 Neumann       0 Neumann
+    u             | 1 Dirichlet     1 Dirichlet     0 Neumann       0 Neumann
     T             | 0 Neumann       0 Neumann       473 Dirichlet   0 Neumann
     """
 
@@ -74,7 +74,8 @@ class BCs:
     def __setup_velocity_bc(self) -> None:
         mesh = self.mesh
         fs = self.function_space.sub(4)
-        inlet_dofs = self.__get_boundary_dofs(fs=fs,marker="inlet")
+        inlet_dofs  = self.__get_boundary_dofs(fs=fs,marker="inlet")
+        outlet_dofs = self.__get_boundary_dofs(fs=fs,marker="outlet")
         u_bc = Function(self.function_space).sub(4)
         def BC_u(x):
             dim = self.mesh.topology.dim
@@ -82,8 +83,9 @@ class BCs:
             values[1,:] = 1.0
             return values
         u_bc.interpolate(BC_u)
-        bc = dirichletbc(value=u_bc,dofs=inlet_dofs)
-        return [bc]
+        bc_in = dirichletbc(value=u_bc,dofs=inlet_dofs)
+        bc_out = dirichletbc(value=u_bc,dofs=outlet_dofs)
+        return [bc_in,bc_out]
     
     def __setup_temperature_bc(self) -> None:
         mesh = self.mesh
