@@ -16,11 +16,11 @@ class WeakForm(FEOperator):
 
     def __assemble_thermal_problem(self) -> None:
         kappa = 1
-        T_p = self.solution.previous.sub[5]
-        T_n = self.solution.next.sub[5]
+        T_p = self.solution.previous.sub(5)
+        T_n = self.solution.next.sub(5)
         test = self.testFunctions[5]
         eltype = self.config["T"]["element"]
-        f = Constant(0.0)
+        f = Constant(self.mesh,0.0)
         self.residual_form += (
             # Mass Matrix
             self._time_derivative(test=test,u_previous=T_p,u_next=T_n)
@@ -71,7 +71,7 @@ class WeakForm(FEOperator):
         self.residual_form += self._gradient(type=eltype,test=test_u,u=p,numerical_flux=self._upwind_scalar)
     
     def __assemble_velocity_problem(self) -> None:
-        p_n, u_n = self.solution.next.sub(3), self.solution.next.sub(4)
+        u_n = self.solution.next.sub(4)
         u_p = self.solution.previous.sub(4)
         test_p, test_u = self.testFunctions[3], self.testFunctions[4]
         eltype = self.config["u"]["element"]

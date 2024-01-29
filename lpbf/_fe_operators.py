@@ -10,7 +10,7 @@ class FEOperator:
     Discontinuous Galerkin (DG) weak formulations.
     """
 
-    def _time_derivative(self, test: TestFunction, u_previous, u_next) -> Form:
+    def _time_derivative(self, test: TestFunction, u_previous: Function, u_next: Function) -> Form:
         """
         Computes the mass matrix of a function `u` using the `TimeDependentFunction`
         class, which holds the values of `u` at different time steps.
@@ -19,22 +19,22 @@ class FEOperator:
         F = inner(test, u_next - u_previous) / dt * dx
         return F
     
-    def _divergence(self, type: str, test: TestFunction, u,
+    def _divergence(self, type: str, test: TestFunction, u: Function,
                 numerical_flux=None) -> Form:
         """
         Computes the divergence of an expression `(velocity * u)` in DG form where `velocity` is a vector and `u` is a scalar.
         """
-        n = self.n
-        F = - inner(test, dot(u,n)) * dx # Partial integration
+        F = - inner(grad(test), u) * dx # Partial integration
         if type == "CG":
             pass    # Nothing else to do
         elif type == "DG":
+            n = self.n
             F += jump(test) * numerical_flux(u,n) * dS # Hull integral
         else:
             raise NotImplementedError("Unknown type of discretization")
         return F
     
-    def _gradient(self, type: str, test: TestFunction, u, numerical_flux=None) -> Form:
+    def _gradient(self, type: str, test: TestFunction, u: Function, numerical_flux=None) -> Form:
         """
         Computes the gradient of a field `u`.
         """
