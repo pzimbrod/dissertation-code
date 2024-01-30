@@ -49,7 +49,7 @@ class ICs:
         p.interpolate(IC_p)
 
     def _set_IC_T(self, T: Function) -> None:
-        def IC_T(x, T_ambient=273.0, T_base = 498.0, height = 0.2):
+        def IC_T(x, T_ambient=298.0, T_base = 498.0, height = 0.2):
             return np.where(x[2] <= height, T_base, T_ambient)
 
         T.interpolate(IC_T)
