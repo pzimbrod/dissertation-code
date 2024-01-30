@@ -28,9 +28,8 @@ def create_geometry():
         com = gmsh.model.occ.getCenterOfMass(surface[0],surface[1])
         if np.allclose(com, [L/2, B, H/2]):
             gmsh.model.addPhysicalGroup(surface[0], [surface[1]], inlet_marker)
-            inlet = surface[1]
             gmsh.model.setPhysicalName(surface[0], inlet_marker, "Shielding gas inlet")
-        elif np.allclose(com, [L, 0, H/2]):
+        elif np.allclose(com, [L/2, 0, H/2]):
             gmsh.model.addPhysicalGroup(surface[0], [surface[1]], outlet_marker)
             gmsh.model.setPhysicalName(surface[0], outlet_marker, "Shielding gas outlet")
         elif np.allclose(com, [L/2, B/2, 0]):
