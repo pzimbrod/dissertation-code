@@ -3,8 +3,10 @@ from geometry import create_geometry, check_msh_file
 from mpi4py import MPI
 import os
 from PBFModel import PBFModel
+from dolfinx import log
 
 #========   Set this to True if you want to overwrite an existing mesh (if one is present) ==========#
+# BUG: Topology computation for hex mesh never finishes, use tets for now
 create_new_mesh = False
 
 current_directory = os.getcwd()
@@ -14,24 +16,25 @@ model_rank = 0
 if not mesh_already_present or create_new_mesh:
     create_geometry()
 
-inlet_marker, outlet_marker, wall_marker, bottom_marker = 1, 3, 5, 7
 markers = {
-    "inlet":    inlet_marker,
-    "outlet":   outlet_marker,
-    "walls":    wall_marker,
-    "bottom":   bottom_marker
+    "inlet":    1,
+    "outlet":   3,
+    "walls":    5,
+    "bottom":   7
 }
 
-config = {
+fe_config = {
     "alphas":   {"element": "DG", "degree": 2},
-    "p":        {"element": "DG", "degree": 1},
-    "u":        {"element": "CG", "degree": 2},
+    # pressure-velocity uses stable Taylor-Hood pairing
+    "p":        {"element": "CG", "degree": 2},
+    "u":        {"element": "CG", "degree": 3},
     "T":        {"element": "CG", "degree": 3},
 }
 
-dt = 1e-3
+dt = 1e-9
 
-model = PBFModel(mesh_path="mesh3d.msh",config=config, bc_markers=markers, timestep=dt)
+log.set_log_level(log.LogLevel.INFO)
+model = PBFModel(mesh_path="mesh3d.msh",config=fe_config, bc_markers=markers, timestep=dt)
 model.setup(filename="output/lpbf.xdmf")
 
 model.assemble()

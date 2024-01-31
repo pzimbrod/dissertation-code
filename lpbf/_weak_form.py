@@ -10,12 +10,12 @@ class WeakForm(FEOperator):
         self.residual_form = 0
         self.n = FacetNormal(self.mesh)
         self.__assemble_thermal_problem()
-        self.__assemble_phase_problem()
-        self.__assemble_pressure_problem()
-        self.__assemble_velocity_problem()
+        #self.__assemble_phase_problem()
+        #self.__assemble_pressure_problem()
+        #self.__assemble_velocity_problem()
 
     def __assemble_thermal_problem(self) -> None:
-        kappa = 1
+        kappa = Constant(self.mesh,1.0)
         T_p = self.solution.previous.sub(5)
         T_n = self.solution.next.sub(5)
         test = self.testFunctions[5]

@@ -44,7 +44,7 @@ def create_geometry():
     gmsh.model.addPhysicalGroup(3, volumes[0])
 
     # True generates a Hex mesh
-    transfinite = True
+    transfinite = False
     if transfinite:
         NN = 30
         for c in gmsh.model.getEntities(1):
@@ -59,7 +59,7 @@ def create_geometry():
     gmsh.model.occ.synchronize()
     gmsh.model.mesh.generate(3)
     if not transfinite:
-        n_refinements = 3
+        n_refinements = 4
         for _ in range(0,n_refinements):
             gmsh.model.mesh.refine()
 

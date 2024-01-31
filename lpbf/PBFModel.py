@@ -33,6 +33,7 @@ class PBFModel(Setup,WeakForm,ICs,BCs,Solver,Output):
         # Make sure the cell-facet connectivity exists for BCs
         dim = self.mesh.topology.dim
         self.mesh.topology.create_connectivity(dim,dim-1)
+        self.mesh.topology.create_connectivity(dim-1,dim)
         self.config = config
         self.bc_markers = bc_markers
         self.time = 0.0
