@@ -53,9 +53,9 @@ class PBFModel(Setup,WeakForm,ICs,BCs,Solver,Output):
     def assemble(self) -> None:
         self._assemble_weak_form()
 
-    def build_solver(self, solver_parameters: dict | None = None) -> None:
+    def build_solver(self) -> None:
         self._assemble_problem()
-        self._assemble_solver(solver_parameters)
+        self._assemble_solver()
     
     def timestep_update(self) -> None:
         # Data access must be done using `subfunctions`

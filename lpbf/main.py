@@ -7,6 +7,7 @@ from dolfinx import log
 
 #========   Set this to True if you want to overwrite an existing mesh (if one is present) ==========#
 # BUG: Topology computation for hex mesh never finishes, use tets for now
+use_hex_mesh = False
 create_new_mesh = False
 
 current_directory = os.getcwd()
