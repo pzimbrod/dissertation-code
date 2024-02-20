@@ -5,14 +5,15 @@ class ICs:
     def _project_initial_conditions(self) -> None:
         # Data access must be done using `subfunctions`
         # https://www.firedrakeproject.org/demos/camassaholm.py.html
-        a_s, a_l, a_g, p, u, T = self.solution.next.split()
+        #a_s, a_l, a_g, p, u, T = self.solution.next.split()
+        T = self.solution.next
 
         # Phase fractions
-        self._set_IC_phases(solid=a_s,liquid=a_l,gas=a_g)
+        #self._set_IC_phases(solid=a_s,liquid=a_l,gas=a_g)
         # Velocity
-        self._set_IC_u(u=u)
+        #self._set_IC_u(u=u)
         # Pressure
-        self._set_IC_p(p=p)
+        #self._set_IC_p(p=p)
         # Temperature
         self._set_IC_T(T=T)
         self.solution.previous.x.scatter_forward()

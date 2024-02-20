@@ -1,4 +1,4 @@
-from ufl import (grad, div, jump, avg, inner, dot, dx, ds, dS, FacetNormal)
+from ufl import (grad, div, jump, avg, inner, dot, dx, ds, dS, FacetNormal, Form)
 from dolfinx.fem import (Constant)
 #from firedrake import (FacetNormal, split, Constant)
 from _fe_operators import FEOperator
@@ -15,19 +15,23 @@ class WeakForm(FEOperator):
         #self.__assemble_velocity_problem()
 
     def __assemble_thermal_problem(self) -> None:
-        kappa = Constant(self.mesh,1.0)
-        T_p = self.solution.previous.sub(5)
-        T_n = self.solution.next.sub(5)
-        test = self.testFunctions[5]
+        rho = self.material_model.solid.rho
+        cp = self.material_model.solid.cp
+        kappa = self.material_model.solid.kappa
+        T_0 = Constant(self.mesh, 273.0)
+        #T_p = self.solution.previous.sub(5)
+        T_p = self.solution.previous
+        #T_n = self.solution.next.sub(5)
+        T_n = self.solution.next
+        test = self.testFunction
         eltype = self.config["T"]["element"]
-        f = Constant(self.mesh,0.0)
         self.residual_form += (
             # Mass Matrix
-            self._time_derivative(test=test,u_previous=T_p,u_next=T_n)
+            rho*cp* self._time_derivative(test=test,u_previous=T_p,u_next=T_n)
             # Laplacian
             + kappa * self._laplacian(type=eltype,test=test,u=T_n)
-            # Right hand side
-            - f * test * dx
+            - test * 1e-9 * (T_n**4 - T_0**4) * dx
+            #- test * kappa * (T_n - T_0) * dx
         )
     
     def __assemble_phase_problem(self) -> None:
@@ -44,6 +48,7 @@ class WeakForm(FEOperator):
             # Advection
             - self._divergence(type=eltype,test=test_s,u=u_solid,numerical_flux=self._upwind_vector)
         )
+
         # Liquid fraction
         self.residual_form += (
             # Mass Matrix
@@ -51,6 +56,7 @@ class WeakForm(FEOperator):
             # Advection
             - self._divergence(type=eltype,test=test_l,u=u_liquid,numerical_flux=self._upwind_vector)
         )
+        
         # Gas fraction
         self.residual_form += (
             # Mass Matrix

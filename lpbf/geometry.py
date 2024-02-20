@@ -11,14 +11,17 @@ outlet: right wall where shielding gas flows out
 bottom: bottom wall where Dirichlet BC for temperature is applied
 walls: rest of the surfaces where Neumann BCs are applied
 """
-def create_geometry():
+def create_geometry(build_hex_mesh: bool = False):
     gmsh.initialize()
 
     gmsh.model.add("PBF-LB/M 3D")
 
     # Create the bounding box
-    L, B, H = 2.0, 0.3, 0.5
-    domain = gmsh.model.occ.addBox(0,0,0,L,B,H)
+    L, B, H_0, H_1 = 2.0, 0.3, 0.3, 0.2
+    
+    domain_bottom = gmsh.model.occ.addBox(0,0,0,L,B,H_0)
+    domain_top = gmsh.model.occ.addBox(0,0,H_0,L,B,H_1)
+    domain = gmsh.model.occ.fragment([(3,domain_bottom)],[(3,domain_top)])
 
     gmsh.model.occ.synchronize()
     surfaces = gmsh.model.getEntities(dim=2)
@@ -26,10 +29,10 @@ def create_geometry():
     walls = []
     for surface in surfaces:
         com = gmsh.model.occ.getCenterOfMass(surface[0],surface[1])
-        if np.allclose(com, [L/2, B, H/2]):
+        if np.allclose(com, [L/2, B, H_0+H_1/2]):
             gmsh.model.addPhysicalGroup(surface[0], [surface[1]], inlet_marker)
             gmsh.model.setPhysicalName(surface[0], inlet_marker, "Shielding gas inlet")
-        elif np.allclose(com, [L/2, 0, H/2]):
+        elif np.allclose(com, [L/2, 0, H_0+H_1/2]):
             gmsh.model.addPhysicalGroup(surface[0], [surface[1]], outlet_marker)
             gmsh.model.setPhysicalName(surface[0], outlet_marker, "Shielding gas outlet")
         elif np.allclose(com, [L/2, B/2, 0]):
@@ -59,7 +62,7 @@ def create_geometry():
     gmsh.model.occ.synchronize()
     gmsh.model.mesh.generate(3)
     if not transfinite:
-        n_refinements = 4
+        n_refinements = 3
         for _ in range(0,n_refinements):
             gmsh.model.mesh.refine()
 

@@ -19,13 +19,14 @@ class BCs:
 
     def _setup_bcs(self):
         self.facet_dim = self.mesh.topology.dim - 1
-        bc_solid = self.__setup_solid_bc()
-        bc_liquid = self.__setup_liquid_bc()
-        bc_gas = self.__setup_gas_bc()
-        bc_p = self.__setup_pressure_bc()
-        bc_u = self.__setup_velocity_bc()
+        #bc_solid = self.__setup_solid_bc()
+        #bc_liquid = self.__setup_liquid_bc()
+        #bc_gas = self.__setup_gas_bc()
+        #bc_p = self.__setup_pressure_bc()
+        #bc_u = self.__setup_velocity_bc()
         bc_T = self.__setup_temperature_bc()
-        self.bcs = [*bc_solid,*bc_liquid,*bc_gas,*bc_p,*bc_u,*bc_T]
+        #self.bcs = [*bc_solid,*bc_liquid,*bc_gas,*bc_p,*bc_u,*bc_T]
+        self.bcs = [*bc_T]
     
     def __get_boundary_dofs(self, fs: FunctionSpace, marker: str) -> np.ndarray:
         # For mixed spaces, a mapping between collapsed and mixed space
@@ -95,7 +96,8 @@ class BCs:
         return [bc_in,bc_out]
     
     def __setup_temperature_bc(self) -> None:
-        fs = self.function_space.sub(5)
+        #fs = self.function_space.sub(5)
+        fs = self.function_space
         inlet_dofs  = self.__get_boundary_dofs(fs=fs,marker="inlet")
         bottom_dofs = self.__get_boundary_dofs(fs=fs,marker="bottom")
         val_bottom = ScalarType(473.0)

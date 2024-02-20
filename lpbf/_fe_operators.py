@@ -50,7 +50,7 @@ class FEOperator:
             raise NotImplementedError("Unknown type of discretization")
         return F
 
-    def _laplacian(self, type: str, test: TestFunction, u, numerical_flux=None) -> Form:
+    def _laplacian(self, type: str, test: TestFunction, u: Function, numerical_flux=None) -> Form:
         """
         Computes the laplacian of a field `u`.
         As the order of this operator is two, there is no DG implementation.

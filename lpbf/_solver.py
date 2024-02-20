@@ -1,7 +1,7 @@
 from dolfinx.fem.petsc import (LinearProblem,NonlinearProblem,create_vector_nest)
 from ufl import lhs, rhs
 from dolfinx.fem import form
-from dolfinx import nls
+from dolfinx.nls.petsc import NewtonSolver
 from petsc4py import PETSc
 
 class Solver:
@@ -19,10 +19,10 @@ class Solver:
 
     def _assemble_solver(self) -> None:
         
-        self.solver = nls.petsc.NewtonSolver(self.mesh.comm,self.prob)
+        self.solver = NewtonSolver(self.mesh.comm,self.prob)
         #self.solver.convergence_criterion = "residual"
         self.solver.convergence_criterion = "incremental"
-        self.solver.rtol = 1e-6
+        self.solver.atol = 1e-6
         self.solver.report = True
         ksp = self.solver.krylov_solver
         opts = PETSc.Options()  # type: ignore
