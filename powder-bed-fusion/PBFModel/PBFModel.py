@@ -6,6 +6,8 @@ import numpy as np
 from .Output import Output
 from .BoundaryCondition import BoundaryConditions
 from .Solver import Solver
+from .initial_conditions import (set_IC_phases, set_IC_p,
+                                 set_IC_u, set_IC_T)
 
 class PBFModel:
     def __init__(self, mesh_path: str, fe_config: dict[dict[str,any]],
@@ -73,14 +75,16 @@ class PBFModel:
     
     def _project_initial_conditions(self) -> None:
 
-        self._set_IC_T(T=self.fe_data.solution["T"].current)
+        set_IC_phases(solid=self.fe_data.solution["alpha_solid"].current,
+                      liquid=self.fe_data.solution["alpha_liquid"].current,
+                      gas=self.fe_data.solution["alpha_gas"].current)
+        set_IC_p(p=self.fe_data.solution["p"].current)
+        set_IC_u(u=self.fe_data.solution["u"].current,
+                 dim=self.mesh.mesh_dim)
+        set_IC_T(T=self.fe_data.solution["T"].current)
+
         self.fe_data.solution.update()
 
         return
 
-
-    def _set_IC_T(self, T: Function) -> None:
-        def IC_T(x, T_ambient=298.0, T_base = 498.0, height = 0.2):
-            return np.where(x[2] <= height, T_base, T_ambient)
-
-        T.interpolate(IC_T)
+   
