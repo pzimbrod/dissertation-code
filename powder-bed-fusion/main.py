@@ -28,19 +28,19 @@ if not mesh_already_present or create_new_mesh:
 
 create_mixed_problem = True
 fe_config = {
-    # "alpha_solid":  {"element": "CG", 
-    #                  "degree": 1, 
-    #                  "type": "scalar"},
-    # "alpha_liquid": {"element": "CG", 
-    #                  "degree": 1, 
-    #                  "type": "scalar"},
-    # "alpha_gas":    {"element": "CG", 
-    #                  "degree": 1, 
-    #                  "type": "scalar"},
-    # # pressure-velocity uses stable Taylor-Hood pairing
-    # "p":        {"element": "CG", 
-    #              "degree": 1, 
-    #              "type": "scalar"},
+    "alpha_solid":  {"element": "CG", 
+                     "degree": 1, 
+                     "type": "scalar"},
+    "alpha_liquid": {"element": "CG", 
+                     "degree": 1, 
+                     "type": "scalar"},
+    "alpha_gas":    {"element": "CG", 
+                     "degree": 1, 
+                     "type": "scalar"},
+    # pressure-velocity uses stable Taylor-Hood pairing
+    "p":        {"element": "CG", 
+                 "degree": 1, 
+                 "type": "scalar"},
     "u":        {"element": "CG", 
                  "degree": 2, 
                 "type": "vector"},

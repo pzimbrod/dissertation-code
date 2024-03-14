@@ -24,7 +24,7 @@ class PBFModel:
         self.current_time   = self.time_domain[0]
         self.dt             = timestep
 
-        self.output         = Output(filename="output/lpbf",
+        self.output         = Output(path="output/",
                                      mesh=self.mesh,
                                      fe_data=self.fe_data)
 
