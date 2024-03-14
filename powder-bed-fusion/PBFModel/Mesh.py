@@ -12,13 +12,13 @@ class Mesh:
 
 
         # Useful for boundary conditions
-        self.mesh_dim = self.dolfinx_mesh.topology.dim
-        self.facet_dim = self.mesh_dim - 1
+        self.cell_dim = self.dolfinx_mesh.topology.dim
+        self.facet_dim = self.cell_dim - 1
 
-        self.dolfinx_mesh.topology.create_connectivity(self.mesh_dim,
+        self.dolfinx_mesh.topology.create_connectivity(self.cell_dim,
                                                        self.facet_dim)
         self.dolfinx_mesh.topology.create_connectivity(self.facet_dim,
-                                                       self.mesh_dim)
+                                                       self.cell_dim)
         
         self.bc_markers = bc_markers
         

@@ -22,7 +22,7 @@ markers = {
 if not mesh_already_present or create_new_mesh:
     os.system("gmsh -3 -format msh2 lpbf/mesh3d.geo -o mesh3d.msh")
 
-create_mixed_problem = True
+create_mixed_problem = False
 fe_config = {
     "alpha_solid":  {"element": "CG", 
                      "degree": 1, 

@@ -4,10 +4,9 @@ from .MaterialModel import MaterialModel
 from dolfinx.fem import Function
 import numpy as np
 from .Output import Output
+from .InitialCondition import InitialConditions
 from .BoundaryCondition import BoundaryConditions
 from .Solver import Solver
-from .initial_conditions import (set_IC_phases, set_IC_p,
-                                 set_IC_u, set_IC_T)
 
 class PBFModel:
     def __init__(self, mesh_path: str, fe_config: dict[dict[str,any]],
@@ -31,22 +30,27 @@ class PBFModel:
                                      fe_data=self.fe_data)
 
         return
+
     
     def setup(self) -> None:
 
-        self._project_initial_conditions()
+        self.ics = InitialConditions()
+        self.ics.apply(fe_data=self.fe_data)
+
         self.output.write(fe_data=self.fe_data,
                           time=self.current_time)
 
-        self.bcs = BoundaryConditions(mesh=self.mesh,
-                        function_spaces=self.fe_data.function_spaces)
+        self.bcs = BoundaryConditions()
+        self.bcs.apply(mesh=self.mesh, fe_data=self.fe_data)
         
         self.fe_data.setup_weak_form(dt=self.dt)
 
-        self.solver = Solver(fe_data=self.fe_data, bc_data=self.bcs,
+        self.solver = Solver(fe_data=self.fe_data, 
+                             bc_data=self.bcs,
                              mesh=self.mesh)
 
         return
+
     
     def _solve_timestep(self):
         self.current_time += self.dt
@@ -62,6 +66,7 @@ class PBFModel:
 
         return
 
+
     def solve(self) -> None:
         end_time = self.time_domain[1]
         while self.current_time < end_time:
@@ -73,18 +78,3 @@ class PBFModel:
         return
 
     
-    def _project_initial_conditions(self) -> None:
-
-        set_IC_phases(solid=self.fe_data.solution["alpha_solid"].current,
-                      liquid=self.fe_data.solution["alpha_liquid"].current,
-                      gas=self.fe_data.solution["alpha_gas"].current)
-        set_IC_p(p=self.fe_data.solution["p"].current)
-        set_IC_u(u=self.fe_data.solution["u"].current,
-                 dim=self.mesh.mesh_dim)
-        set_IC_T(T=self.fe_data.solution["T"].current)
-
-        self.fe_data.solution.update()
-
-        return
-
-   

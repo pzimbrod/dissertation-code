@@ -103,13 +103,11 @@ class Solver:
         
         if fe_data.is_mixed:
             u = fe_data.mixed_solution.current
-            #u = fe_data.solution["T"].current
         else:
             u = fe_data.solution["T"].current
-        F = fe_data.weak_form
-        bcs = bc_data.T
 
-        self.prob = NonlinearProblem(F=F, u=u, bcs=bcs)
+        self.prob = NonlinearProblem(F=fe_data.weak_form, u=u, 
+                                     bcs=bc_data.bc_list)
         self.newton_solver = NewtonSolver(comm=mesh.dolfinx_mesh.comm,
                                           problem=self.prob)
         
