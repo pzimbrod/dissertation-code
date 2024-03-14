@@ -18,7 +18,8 @@ class BoundaryConditions:
     T             | 298 Dirichlet   0 Neumann       473 Dirichlet   0 Neumann
     """
 
-    def __init__(self, mesh: Mesh, function_spaces: dict) -> None:
+    def __init__(self, mesh: Mesh, 
+                 function_spaces: dict[str,FunctionSpace]) -> None:
         self.T = self._setup_temperature_bc(mesh=mesh,
                                             fs=function_spaces["T"])
         

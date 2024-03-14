@@ -12,7 +12,8 @@ class FEData:
     finite element specific implementation.
     """
 
-    def __init__(self, mesh: Mesh, config: dict,
+    def __init__(self, mesh: Mesh, 
+                 config: dict[str,dict[str,any]],
                  create_mixed: bool = False) -> None:
         self.is_mixed = create_mixed
         self.config = config
@@ -27,7 +28,7 @@ class FEData:
         return
     
     
-    def __init_finite_elements(self, mesh: Mesh) -> (dict):
+    def __init_finite_elements(self, mesh: Mesh) -> dict[str,FiniteElement]:
         """
         Create the mixed finite element (FE) to describe the problem.
         Each variable receives its own sub-FE according to the config
@@ -58,7 +59,7 @@ class FEData:
         return out
     
 
-    def __init_function_space(self, mesh: Mesh) -> dict:
+    def __init_function_space(self, mesh: Mesh) -> dict[str,FunctionSpace]:
         """
         Create a dolfinx Function Space from the mixed Finite Element
         """
@@ -82,7 +83,7 @@ class FEData:
         return function_spaces
 
     
-    def __init_solution(self) -> dict:
+    def __init_solution(self) -> dict[str,TimeDependentFunction]:
         functions = {}
 
         if self.is_mixed:
@@ -106,7 +107,7 @@ class FEData:
         return functions
     
 
-    def __init_test_functions(self) -> dict:
+    def __init_test_functions(self) -> dict[str,TestFunction]:
         test_functions = {}
 
         if self.is_mixed:

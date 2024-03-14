@@ -3,7 +3,7 @@ from .Mesh import Mesh
 from dolfinx import default_scalar_type
 
 class MaterialModel:
-    def __init__(self,mesh: Mesh,material_model: dict) -> None:
+    def __init__(self,mesh: Mesh,material_model: dict[str,float]) -> None:
         self.constants = {}
         for (phase,subdict) in material_model.items():
             self.constants[phase] = {}

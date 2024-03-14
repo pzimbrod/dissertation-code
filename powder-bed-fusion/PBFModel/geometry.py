@@ -10,7 +10,7 @@ outlet: right wall where shielding gas flows out
 bottom: bottom wall where Dirichlet BC for temperature is applied
 walls: rest of the surfaces where Neumann BCs are applied
 """
-def create_geometry(markers: dict, build_hex_mesh: bool = False):
+def create_geometry(markers: dict[str,int], build_hex_mesh: bool = False):
     gmsh.initialize()
 
     gmsh.model.add("PBF-LB/M 3D")
@@ -74,7 +74,7 @@ def create_geometry(markers: dict, build_hex_mesh: bool = False):
 
     gmsh.write("mesh3D.msh")
 
-def check_msh_file(directory):
+def check_msh_file(directory: str) -> bool:
     for root, dirs, files in os.walk(directory):
         for file in files:
             if file.endswith(".msh"):

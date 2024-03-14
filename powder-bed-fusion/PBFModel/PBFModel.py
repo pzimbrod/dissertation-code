@@ -8,8 +8,8 @@ from .BoundaryCondition import BoundaryConditions
 from .Solver import Solver
 
 class PBFModel:
-    def __init__(self, mesh_path: str, fe_config: dict,
-                 material_model: dict,bc_markers: dict,
+    def __init__(self, mesh_path: str, fe_config: dict[dict[str,any]],
+                 material_model: dict[str,float],bc_markers: dict[str,int],
                  timestep: float, time_domain: tuple,
                  create_mixed: bool = False) -> None:
         

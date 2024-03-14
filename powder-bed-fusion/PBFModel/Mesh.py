@@ -2,7 +2,7 @@ from dolfinx.io import gmshio
 from mpi4py import MPI
 
 class Mesh:
-    def __init__(self, mesh_path: str, bc_markers: dict) -> None:
+    def __init__(self, mesh_path: str, bc_markers: dict[str,int]) -> None:
         self.dolfinx_mesh, self.cell_tags, self.facet_tags = gmshio.read_from_msh(
             filename=mesh_path,comm=MPI.COMM_WORLD)
         
