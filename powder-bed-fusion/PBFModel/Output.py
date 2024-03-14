@@ -1,6 +1,4 @@
-from dolfinx.io import (VTKFile, XDMFFile, VTXWriter)
-from dolfinx.fem import (Function)
-from mpi4py import MPI
+from dolfinx.io import VTKFile
 from .Mesh import Mesh
 from .FEData import FEData
 

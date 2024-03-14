@@ -1,10 +1,7 @@
-import numpy as np
-from PBFModel.geometry import create_geometry, check_msh_file
-from mpi4py import MPI
+from PBFModel.geometry import check_msh_file
 import os
 from PBFModel.PBFModel import PBFModel
 from dolfinx import log
-from time import time
 
 #========   Set this to True if you want to overwrite an existing mesh (if one is present) ==========#
 # BUG: Topology computation for hex mesh never finishes, use tets for now
@@ -23,7 +20,6 @@ markers = {
     "bottom":   21
 }
 if not mesh_already_present or create_new_mesh:
-    #create_geometry(markers=markers,build_hex_mesh=use_hex_mesh)
     os.system("gmsh -3 -format msh2 lpbf/mesh3d.geo -o mesh3d.msh")
 
 create_mixed_problem = True

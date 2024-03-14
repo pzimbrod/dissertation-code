@@ -2,9 +2,9 @@ from mpi4py import MPI
 from .Mesh import Mesh
 from .TimeDependentFunction import TimeDependentFunction
 from .FEOperators import FEOperators
-from dolfinx.fem import (FunctionSpace, Function, Constant)
+from dolfinx.fem import (FunctionSpace, Function)
 from ufl import (FiniteElement, VectorElement, MixedElement,
-                 dx, Form, TestFunctions, TestFunction, split)
+                Form, TestFunctions, TestFunction, split)
 
 class FEData:
     """

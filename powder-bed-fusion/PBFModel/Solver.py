@@ -1,15 +1,13 @@
-from dolfinx.fem.petsc import (LinearProblem,NonlinearProblem,
-                               create_vector_nest, assemble_vector,
+from dolfinx.fem.petsc import (NonlinearProblem,
+                               assemble_vector,
                                apply_lifting,set_bc, assemble_matrix,
                                create_matrix, create_vector)
-from ufl import lhs, rhs, derivative, TrialFunction
-from dolfinx.fem import form, Function, FunctionSpace
-from dolfinx.la import create_petsc_vector
+from ufl import derivative, TrialFunction
+from dolfinx.fem import form, Function
 from dolfinx.nls.petsc import NewtonSolver
 from .Mesh import Mesh
 from .FEData import FEData
 from .BoundaryCondition import BoundaryConditions
-from .TimeDependentFunction import TimeDependentFunction
 from petsc4py import PETSc
 from mpi4py import MPI
 import numpy as np
