@@ -10,18 +10,65 @@ class FEData:
     """
     An abstraction holding all data structures that belong to a
     finite element specific implementation.
+    ...
+
+    Attributes
+    ----------
+    `is_mixed` : `bool`
+        whether the Finite Element problem is set up using a mixed function space
+
+    `config` : `dict[dict[str,any]]`
+        the specification of how the Finite Element problem is supposed to be set up.
+
+    `finite_elements` : `dict[str,FiniteElement]`
+        the finite elements for each specified field
+    
+    `function_spaces` : `dict[str,FunctionSpace]`
+        the function spaces for each specified field
+    
+    `test_functions` : `dict[str, TestFunction]`
+        the test function for each specified field
+
+    `solution` : `dict[str,TimeDependentFunction]`
+        the time dependent solution variable(s) of the problem
+
+    `operators` : `FEOperators`
+        a collection of methods to express weak differential operators
+
+    Methods
+    -------
+    setup_weak_form(dt: float)
+        Set up the weak PDE formulation of the problem.
     """
 
     def __init__(self, mesh: Mesh, 
                  config: dict[str,dict[str,any]],
                  create_mixed: bool = False) -> None:
+        """
+        Parameters
+        ----------
+        `mesh` : `Mesh`
+            the computational domain, including information about the boundary
+
+        `config` : `dict[dict[str,any]]`
+            the specification of how the Finite Element problem is supposed to be set up.
+            It should have the following structure: the top level keys are the fields to be created.
+            Then, for each field, the keys `element` (element type - `"CG" or "DG"`), `degree` (Finite
+            Element degree - `int`) and `type` (tensor dimension - `"scalar"` or `"vector"`) must be given
+        
+        `create_mixed` : `bool`, optional
+            Whether to create the problem in a mixed space. Setting this to `True` will create a monolithic
+            problem that is solved at once using a Newton method, which can take considerably longer than
+            a split problem, but doesn't require any specific type of solver setup that is tailored to
+            the PDE problem.
+        """
         self.is_mixed = create_mixed
         self.config = config
         self.finite_elements = self.__init_finite_elements(
                                             mesh=mesh)
         self.function_spaces = self.__init_function_space(
                                             mesh=mesh)
-        self.testFunctions = self.__init_test_functions()
+        self.test_functions = self.__init_test_functions()
         self.solution = self.__init_solution()
         self.operators = FEOperators()
 
@@ -129,6 +176,15 @@ class FEData:
     
 
     def setup_weak_form(self, dt: float) -> None:
+        """
+        Set up the weak PDE formulation of the problem.
+        
+        Parameters
+        ----------
+        
+        `dt` : `float`
+            the time step increment
+        """
         self.weak_form = 0
 
         self.weak_form += self.__weak_heat_eq(dt=dt)
@@ -144,7 +200,7 @@ class FEData:
             T_prev      = self.solution["T"].previous
             T_current   = self.solution["T"].current
 
-        test = self.testFunctions["T"]
+        test = self.test_functions["T"]
         eltype = self.__get_element_type("T")
 
         residual_form = (
