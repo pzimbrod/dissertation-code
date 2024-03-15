@@ -25,8 +25,8 @@ class BoundaryConditions:
             "alpha_solid":  self._alpha_solid,
             "alpha_liquid": self._alpha_liquid,
             "alpha_gas":    self._alpha_gas,
-            #"p":            self._p,        # Causes divergence
-            #"u":            self._u,       # Causes SEGV
+            "p":            self._p,        # Causes divergence
+            "u":            self._u,       # Causes SEGV
             "T":            self._T
         }
         
@@ -35,8 +35,9 @@ class BoundaryConditions:
 
     def apply(self, mesh: Mesh, fe_data: FEData) -> None:
         self.bc_list = []
-        for bc_fun in self.functions.values():
-            self.bc_list.extend(bc_fun(mesh=mesh,fe_data=fe_data))
+        for (field,bc_fun) in self.functions.items():
+            if field in fe_data.config.keys():
+                self.bc_list.extend(bc_fun(mesh=mesh,fe_data=fe_data))
         
         return
     

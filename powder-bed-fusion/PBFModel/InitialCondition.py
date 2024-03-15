@@ -17,8 +17,9 @@ class InitialConditions:
     
 
     def apply(self, fe_data: FEData) -> None:
-        for ic_fun in self.functions.values():
-            ic_fun(fe_data=fe_data)
+        for (field,ic_fun) in self.functions.items():
+            if field in fe_data.config.keys():
+                ic_fun(fe_data=fe_data)
         
         fe_data.solution.update()
         
