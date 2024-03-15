@@ -3,6 +3,24 @@ import numpy as np
 from .FEData import FEData
 
 class InitialConditions:
+    """
+    A collection of functions that specify the initial configuration
+    of all fields.
+
+    Attributes
+    ----------
+    `functions` : `dict[str,function]`
+        for each field, contains the function that interpolates
+        the respective intital condition
+
+
+    Methods
+    -------
+    apply(fe_data: FEData)
+        for each function present in `fe_data`, interpolate the
+        respective IC
+    """
+
     def __init__(self) -> None:
         self.functions = {
             "alpha_solid":  self._alpha_solid,
@@ -17,6 +35,17 @@ class InitialConditions:
     
 
     def apply(self, fe_data: FEData) -> None:
+        """
+        for each function present in `fe_data`, interpolate the
+        respective IC
+        
+        Parameters
+        ----------
+
+        `fe_data` : `FEData`
+            the data structure containing Finite Elemenent specific
+            attributes of the problem
+        """
         for (field,ic_fun) in self.functions.items():
             if field in fe_data.config.keys():
                 ic_fun(fe_data=fe_data)

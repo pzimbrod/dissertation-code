@@ -19,6 +19,19 @@ class BoundaryConditions:
     u               Dirichlet (0,1,0) Dirichlet (0,1,0) Neumann   (0,0,0) Neumann (0,0,0)
     T               Dirichlet 298     Neumann   0       Dirichlet 473     Neumann 0
     =============== ================= ================= ================= ===============
+
+    Attributes
+    ----------
+    `functions` : `dict[str,function]`
+        for each field, contains the function that interpolates
+        the respective boundary condition
+
+
+    Methods
+    -------
+    apply(fe_data: FEData)
+        for each function present in `fe_data`, interpolate the
+        respective BC
     """
 
     def __init__(self) -> None:
@@ -36,6 +49,20 @@ class BoundaryConditions:
     
 
     def apply(self, mesh: Mesh, fe_data: FEData) -> None:
+        """
+        for each function present in `fe_data`, interpolate the
+        respective BC
+        
+        Parameters
+        ----------
+
+        `fe_data` : `FEData`
+            the data structure containing Finite Elemenent specific
+            attributes of the problem
+        
+        `mesh` : `Mesh`
+            the computational mesh of the problem
+        """
         self.bc_list = []
         for (field,bc_fun) in self.functions.items():
             if field in fe_data.config.keys():

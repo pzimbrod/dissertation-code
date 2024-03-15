@@ -33,16 +33,15 @@ fe_config = {
     "alpha_gas":    {"element": "CG", 
                      "degree": 1, 
                      "type": "scalar"},
-    # pressure-velocity uses stable Taylor-Hood pairing
-    "p":        {"element": "CG", 
-                 "degree": 1, 
-                 "type": "scalar"},
-    "u":        {"element": "CG", 
-                 "degree": 2, 
-                "type": "vector"},
-    "T":        {"element": "CG", 
-                 "degree": 1, 
-                 "type": "scalar"},
+    "p":            {"element": "CG", 
+                    "degree": 1, 
+                    "type": "scalar"},
+    "u":            {"element": "CG", 
+                    "degree": 2, 
+                    "type": "vector"},
+    "T":            {"element": "CG", 
+                    "degree": 1, 
+                    "type": "scalar"},
 }
 
 # This should be a dictionary of dictionaries

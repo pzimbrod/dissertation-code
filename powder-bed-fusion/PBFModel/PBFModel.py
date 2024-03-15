@@ -96,15 +96,15 @@ class PBFModel:
         
         self.mesh           = Mesh(mesh_path=mesh_path, 
                                    bc_markers=bc_markers)
-        self.fe_data      = FEData(mesh=self.mesh, config=fe_config,
+        self.fe_data        = FEData(mesh=self.mesh, config=fe_config,
                                      create_mixed=create_mixed)
         self.material_model = MaterialModel(mesh=self.mesh,
                                             material_model=material_model)
-        
         self.time_domain    = time_domain
         self.current_time   = self.time_domain[0]
         self.dt             = timestep
-
+        self.ics            = InitialConditions()
+        self.bcs            = BoundaryConditions()
         self.output         = Output(path="output/",
                                      mesh=self.mesh,
                                      fe_data=self.fe_data)
@@ -118,17 +118,11 @@ class PBFModel:
         and boundary conditions, write output for the first time step and set up
         the PDE weak form as well as the nonlinear solver for the problem.
         """
-        self.ics = InitialConditions()
         self.ics.apply(fe_data=self.fe_data)
-
         self.output.write(fe_data=self.fe_data,
                           time=self.current_time)
-
-        self.bcs = BoundaryConditions()
         self.bcs.apply(mesh=self.mesh, fe_data=self.fe_data)
-        
         self.fe_data.setup_weak_form(dt=self.dt)
-
         self.solver = PBFSolver(fe_data=self.fe_data, 
                              bc_data=self.bcs,
                              mesh=self.mesh)
