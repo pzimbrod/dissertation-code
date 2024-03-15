@@ -4,7 +4,7 @@ from .MaterialModel import MaterialModel
 from .Output import Output
 from .InitialCondition import InitialConditions
 from .BoundaryCondition import BoundaryConditions
-from .Solver import Solver
+from .Solver import PBFSolver
 
 class PBFModel:
     """
@@ -35,6 +35,15 @@ class PBFModel:
 
     `output` : `Output`
         the handler for creating and modifying output files
+    
+    `ics` : `InitialConditions`
+        the methods that define the initial state of the solution variables
+    
+    `bcs` : `BoundaryConditions`
+        the data structure holding the boundary conditions for the solution variables
+    
+    `solver` : `PBFSolver`
+        the Nonlinear variational solver for the PBF problem
 
     Methods
     -------
@@ -120,7 +129,7 @@ class PBFModel:
         
         self.fe_data.setup_weak_form(dt=self.dt)
 
-        self.solver = Solver(fe_data=self.fe_data, 
+        self.solver = PBFSolver(fe_data=self.fe_data, 
                              bc_data=self.bcs,
                              mesh=self.mesh)
 

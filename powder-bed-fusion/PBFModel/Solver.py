@@ -94,7 +94,7 @@ class SNESProblem:
         return 
 
 
-class Solver:
+class PBFSolver:
 
     def __init__(self, 
                  mesh: Mesh,
