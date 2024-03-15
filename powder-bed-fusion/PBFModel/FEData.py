@@ -81,6 +81,12 @@ class FEData:
                 )
 
         return function_spaces
+    
+
+    def __get_element_type(self, field: str) -> str:
+        eltype = self.function_spaces[field].ufl_element().family()
+        
+        return eltype
 
     
     def __init_solution(self) -> dict[str,TimeDependentFunction]:
@@ -139,7 +145,7 @@ class FEData:
             T_current   = self.solution["T"].current
 
         test = self.testFunctions["T"]
-        eltype = self.function_spaces["T"].ufl_element().family()
+        eltype = self.__get_element_type("T")
 
         residual_form = (
             # Mass Matrix

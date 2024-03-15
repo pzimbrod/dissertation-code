@@ -25,8 +25,8 @@ class BoundaryConditions:
             "alpha_solid":  self._alpha_solid,
             "alpha_liquid": self._alpha_liquid,
             "alpha_gas":    self._alpha_gas,
-            "p":            self._p,        # Causes divergence
-            "u":            self._u,       # Causes SEGV
+            "p":            self._p,
+            "u":            self._u,
             "T":            self._T
         }
         
