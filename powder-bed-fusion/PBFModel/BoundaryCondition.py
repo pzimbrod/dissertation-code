@@ -9,14 +9,16 @@ class BoundaryConditions:
     """
     Implements the following boundary conditions:
 
-                  | inlet           outlet          bottom          walls
-    ----------------------------------------------------------------------------
-    alpha_solid   | 0 Dirichlet     0 Neumann       1 Dirichlet     0 Neumann
-    alpha_liquid  | 0 Dirichlet     0 Neumann       0 Dirichlet     0 Neumann
-    alpha_gas     | 1 Dirichlet     0 Neumann       0 Dirichlet     0 Neumann
-    p             | 0 Neumann       0 Dirichlet     0 Neumann       0 Neumann
-    u             | 1 Dirichlet     1 Dirichlet     0 Neumann       0 Neumann
-    T             | 298 Dirichlet   0 Neumann       473 Dirichlet   0 Neumann
+    =============== ================= ================= ================= ===============
+                    inlet             outlet            bottom            walls
+    =============== ================= ================= ================= ===============
+    alpha_solid     Dirichlet 0       Neumann   0       Dirichlet 1       Neumann 0
+    alpha_liquid    Dirichlet 0       Neumann   0       Dirichlet 0       Neumann 0
+    alpha_gas       Dirichlet 1       Neumann   0       Dirichlet 0       Neumann 0
+    p               Neumann   0       Dirichlet 0       Neumann   0       Neumann 0
+    u               Dirichlet (0,1,0) Dirichlet (0,1,0) Neumann   (0,0,0) Neumann (0,0,0)
+    T               Dirichlet 298     Neumann   0       Dirichlet 473     Neumann 0
+    =============== ================= ================= ================= ===============
     """
 
     def __init__(self) -> None:
