@@ -141,6 +141,7 @@ class PBFModel:
         its, is_converged = solver.solve(u=u)
         assert(is_converged)
         print(f"Nonlinear solve converged in {its} iterations.")
+        self.solver.postprocess(fe_data=self.fe_data)
         self.output.write(fe_data=self.fe_data, 
                           time=self.current_time)
         self.fe_data.solution.update()

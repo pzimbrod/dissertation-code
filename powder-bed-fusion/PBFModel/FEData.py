@@ -2,7 +2,7 @@ from mpi4py import MPI
 from .Mesh import Mesh
 from .TimeDependentFunction import TimeDependentFunction
 from .FEOperators import FEOperators
-from dolfinx.fem import (FunctionSpace, Function, Constant)
+from dolfinx.fem import (FunctionSpace, Function, Expression)
 from ufl import (FiniteElement, VectorElement, MixedElement,
                 Form, TestFunctions, TestFunction, split)
 
@@ -80,6 +80,11 @@ class FEData:
             "p":            "explicit euler",
             "u":            "explicit euler",
             "T":            "implicit euler",
+        }
+
+        # Algebraic expressions that can be evaluated in a postprocessing step
+        self.expressions = {
+            "alpha_gas":    self.__init_VoF_expression(),
         }
 
         return
@@ -185,6 +190,14 @@ class FEData:
         return test_functions
     
 
+    def __init_VoF_expression(self) -> Expression:
+        VoF_expr = Expression(
+            1.0 - self.solution["alpha_solid"].current - self.solution["alpha_liquid"].current,
+            self.function_spaces["alpha_gas"].element.interpolation_points())
+        
+        return VoF_expr
+    
+
     def setup_weak_form(self, dt: float) -> None:
         """
         Set up the weak PDE formulation of the problem.
@@ -205,6 +218,10 @@ class FEData:
         # Solid phase
         self.weak_form += self.__weak_advection_eq(dt=dt, phase_key="alpha_solid",
                             time_scheme=self.__select_time_scheme("alpha_solid"))
+        
+        # Liquid phase
+        self.weak_form += self.__weak_advection_eq(dt=dt, phase_key="alpha_liquid",
+                            time_scheme=self.__select_time_scheme("alpha_liquid"))
 
         return
     

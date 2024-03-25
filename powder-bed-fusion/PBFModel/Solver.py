@@ -126,3 +126,12 @@ class PBFSolver:
 
         return
 
+    def postprocess(self, fe_data: FEData) -> None:
+        """
+        Calculates derived quantities for the current timestep,
+        such as the gas volume fraction, following \sum_i \alpha_i = 1
+        """
+        a_gas = fe_data.solution["alpha_gas"].current
+        a_gas.interpolate(fe_data.expressions["alpha_gas"])
+
+        return
