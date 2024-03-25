@@ -73,6 +73,15 @@ class FEData:
         self.solution = self.__init_solution()
         self.operators = FEOperators(mesh=mesh)
 
+        self.default_time_schemes = {
+            "alpha_solid":  "explicit euler",
+            "alpha_liquid": "explicit euler",
+            "alpha_gas":    "explicit euler",
+            "p":            "explicit euler",
+            "u":            "explicit euler",
+            "T":            "implicit euler",
+        }
+
         return
     
     
@@ -188,25 +197,59 @@ class FEData:
         """
         self.weak_form = 0
 
-        self.weak_form += self.__weak_heat_eq(dt=dt)
-        self.weak_form += self.__weak_advection_eq(dt=dt, phase_key="alpha_solid")
+
+        # Temperature
+        self.weak_form += self.__weak_heat_eq(dt=dt,
+                            time_scheme=self.__select_time_scheme("T"))
+        
+        # Solid phase
+        self.weak_form += self.__weak_advection_eq(dt=dt, phase_key="alpha_solid",
+                            time_scheme=self.__select_time_scheme("alpha_solid"))
 
         return
     
 
-    def __get_functions(self, key: str) -> tuple[Function]:
+    def __select_time_scheme(self, key:str) -> str:
+        if "time_scheme" in self.config[key].keys():
+            return self.config[key]["time_scheme"]
+        else:
+            return self.default_time_schemes[key]
+
+    
+    def __get_functions(self, key:str) -> tuple[Function]:
         if self.is_mixed:
+            # One cannot take subfunctions here, as a ufl expression is required.
+            # This can only be attained using the split() method
             prev      = split(self.mixed_solution.previous)[self.sub_map[key]]
             current   = split(self.mixed_solution.current)[self.sub_map[key]]
         else:
             prev      = self.solution[key].previous
             current   = self.solution[key].current
-        
+ 
         return prev, current
+    
+
+    def __get_function(self, key: str, 
+                        temporal_scheme: str) -> Function:
+        
+        prev, current = self.__get_functions(key=key)
+        
+        if temporal_scheme == "implicit euler":
+            fn = current
+        elif temporal_scheme == "explicit euler":
+            fn = prev
+        else:
+            raise NotImplementedError(f"Time stepping scheme \
+                '{temporal_scheme}' not implemented. Choose between \
+                'implicit euler' and 'explicit euler'")
+    
+        return fn
 
 
-    def __weak_heat_eq(self, dt: float) -> Form:
-        T_prev, T_current = self.__get_functions("T")
+    def __weak_heat_eq(self, dt: float, time_scheme: str) -> Form:
+        
+        T = self.__get_function(key="T", temporal_scheme=time_scheme)
+        T_prev, T_current = self.__get_functions(key="T")
 
         test = self.test_functions["T"]
         eltype = self.__get_element_type(field="T")
@@ -220,14 +263,15 @@ class FEData:
             # Laplacian
             - self.operators.laplacian(type=eltype,
                                        test=test,
-                                       u=T_current)
+                                       u=T)
         )
 
         return residual_form
 
-    def __weak_advection_eq(self, dt: float, phase_key: str) -> Form:
+    def __weak_advection_eq(self, dt: float, phase_key: str, time_scheme: str) -> Form:
         alpha_prev, alpha_current   = self.__get_functions(key=phase_key)
-        u_prev, u_current           = self.__get_functions(key="u")
+        alpha = self.__get_function(key=phase_key,temporal_scheme=time_scheme)
+        u     = self.__get_function(key="u",temporal_scheme=time_scheme)
 
         test = self.test_functions[phase_key]
         eltype = self.__get_element_type(field=phase_key)
@@ -241,7 +285,7 @@ class FEData:
             # Advection
             + self.operators.divergence(type=eltype,
                                         test=test,
-                                        u=u_prev * alpha_prev,
+                                        u= u * alpha,
                                         numerical_flux=self.operators.upwind_vector)
         )
 

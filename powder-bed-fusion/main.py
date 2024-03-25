@@ -28,37 +28,43 @@ fe_config = {
     "alpha_solid": {
         "element": "DG", 
         "degree": 1, 
-        "type": "scalar"
+        "type": "scalar",
+        "time_scheme":  "explicit euler",
         },
 
     "alpha_liquid": {
         "element": "DG", 
         "degree": 1, 
-        "type": "scalar"
+        "type": "scalar",
+        "time_scheme":  "explicit euler",
         },
 
     "alpha_gas": {
         "element": "DG", 
         "degree": 1, 
-        "type": "scalar"
+        "type": "scalar",
+        "time_scheme":  "explicit euler",
         },
 
     "p": {
         "element": "CG", 
         "degree": 1, 
-        "type": "scalar"
+        "type": "scalar",
+        "time_scheme":  "explicit euler",
         },
 
     "u": {
         "element": "CG", 
         "degree": 2, 
-        "type": "vector"
+        "type": "vector",
+        "time_scheme":  "explicit euler",
         },
 
     "T": {
         "element": "CG", 
         "degree": 1, 
-        "type": "scalar"
+        "type": "scalar",
+        "time_scheme":  "implicit euler",
         },
 }
 
