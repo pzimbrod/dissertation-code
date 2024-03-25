@@ -50,11 +50,13 @@ class FEData:
         `mesh` : `Mesh`
             the computational domain, including information about the boundary
 
-        `config` : `dict[dict[str,any]]`
+        `config` : `dict[str,dict[str,any]]`
             the specification of how the Finite Element problem is supposed to be set up.
             It should have the following structure: the top level keys are the fields to be created.
             Then, for each field, the keys `element` (element type - `"CG" or "DG"`), `degree` (Finite
-            Element degree - `int`) and `type` (tensor dimension - `"scalar"` or `"vector"`) must be given
+            Element degree - `int`) and `type` (tensor dimension - `"scalar"` or `"vector"`) must be given.
+            The key "time_scheme" is optional and specifies the time stepping scheme to be used for that
+            quantity. Choose between `"implicit euler"` and `"explicit euler"`.
         
         `create_mixed` : `bool`, optional
             Whether to create the problem in a mixed space. Setting this to `True` will create a monolithic

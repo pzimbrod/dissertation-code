@@ -55,8 +55,8 @@ class PBFModel:
     solve()
         Solves the problem over the entire time domain specified by `time_domain`.
     """
-    def __init__(self, mesh_path: str, fe_config: dict[dict[str,any]],
-                 material_model: dict[dict[str,float]],bc_markers: dict[str,int],
+    def __init__(self, mesh_path: str, fe_config: dict[str,dict[str,any]],
+                 material_model: dict[str,dict[str,float]],bc_markers: dict[str,int],
                  timestep: float, time_domain: tuple[float,float],
                  create_mixed: bool = False) -> None:
         """
@@ -65,13 +65,15 @@ class PBFModel:
         `mesh_path` : `str`
             the exact path from the project directory where the mesh file is located
 
-        `fe_config` : `dict[dict[str,any]]`
+        `fe_config` : `dict[str,dict[str,any]]`
             the specification of how the Finite Element problem is supposed to be set up.
             It should have the following structure: the top level keys are the fields to be created.
             Then, for each field, the keys `element` (element type - `"CG" or "DG"`), `degree` (Finite
-            Element degree - `int`) and `type` (tensor dimension - `"scalar"` or `"vector"`) must be given
+            Element degree - `int`) and `type` (tensor dimension - `"scalar"` or `"vector"`) must be given.
+            The key "time_scheme" is optional and specifies the time stepping scheme to be used for that
+            quantity. Choose between `"implicit euler"` and `"explicit euler"`.
 
-        `material_model` : `dict[dict[str,float]]`
+        `material_model` : `dict[str,dict[str,float]]`
             The material parameters to be used. It should have the following structure: the top level keys
             represent the phases present in the model, they must correspond to the `alpha_*` fields in
             `fe_config`. Then, for each phase, the properties are specified via key-value pairs.
