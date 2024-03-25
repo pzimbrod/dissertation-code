@@ -6,7 +6,9 @@ from dolfinx.io import gmshio
 from dolfinx.fem import (FunctionSpace, Function, Constant, dirichletbc, 
                         locate_dofs_geometrical, form, locate_dofs_topological ,
                         assemble_scalar, VectorFunctionSpace, Expression)
-from dolfinx.fem.petsc import assemble_matrix, assemble_vector, NonlinearProblem
+from dolfinx.fem.petsc import (assemble_matrix, assemble_vector, 
+                               NonlinearProblem)
+from dolfinx.nls.petsc import NewtonSolver
 from ufl import (TrialFunction, TestFunction, FiniteElement, grad, dot, inner, 
                 lhs, rhs, Measure, SpatialCoordinate, FacetNormal)#, ds, dx
 from petsc4py.PETSc import ScalarType
@@ -62,9 +64,7 @@ class ThermalProblem:
             (self.T_current - self.T_previous) * self.v * dx
             + self.dt * (
             # Laplacian
-            - alpha * dot(grad(self.T_current),grad(self.v)) * dx
-            # Right hand side
-            - f * self.v * dx
+            + alpha * dot(grad(self.T_current),grad(self.v)) * dx
             # Radiation
             + sigma * epsilon * (self.T_current**4 - T_0**4) * self.v * ds
             # Convection
@@ -73,11 +73,11 @@ class ThermalProblem:
         )
     
     def setup_solver(self) -> None:
-        self.prob = fem.petsc.NonlinearProblem(self.F,self.T_current)
+        self.prob = NonlinearProblem(self.F,self.T_current)
 
-        self.solver = nls.petsc.NewtonSolver(self.mesh.comm, self.prob)
+        self.solver = NewtonSolver(self.mesh.comm, self.prob)
         self.solver.convergence_criterion = "incremental"
-        self.solver.rtol = 1e-12
+        self.solver.rtol = 1e-10
         self.solver.report = True
 
         self.ksp = self.solver.krylov_solver

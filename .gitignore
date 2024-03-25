@@ -168,3 +168,5 @@ cython_debug/
 # Paraview
 *.vtu
 *.pvd
+*.pvtu
+**/*.bp
