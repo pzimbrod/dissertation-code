@@ -2,7 +2,7 @@ from mpi4py import MPI
 from .Mesh import Mesh
 from .TimeDependentFunction import TimeDependentFunction
 from .FEOperators import FEOperators
-from dolfinx.fem import (FunctionSpace, Function)
+from dolfinx.fem import (FunctionSpace, Function, Constant)
 from ufl import (FiniteElement, VectorElement, MixedElement,
                 Form, TestFunctions, TestFunction, split)
 
@@ -63,6 +63,7 @@ class FEData:
             the PDE problem.
         """
         self.is_mixed = create_mixed
+        self.mesh = mesh.dolfinx_mesh
         self.config = config
         self.finite_elements = self.__init_finite_elements(
                                             mesh=mesh)
@@ -70,7 +71,7 @@ class FEData:
                                             mesh=mesh)
         self.test_functions = self.__init_test_functions()
         self.solution = self.__init_solution()
-        self.operators = FEOperators()
+        self.operators = FEOperators(mesh=mesh)
 
         return
     
@@ -188,20 +189,27 @@ class FEData:
         self.weak_form = 0
 
         self.weak_form += self.__weak_heat_eq(dt=dt)
+        self.weak_form += self.__weak_advection_eq(dt=dt, phase_key="alpha_solid")
 
         return
+    
+
+    def __get_functions(self, key: str) -> tuple[Function]:
+        if self.is_mixed:
+            prev      = split(self.mixed_solution.previous)[self.sub_map[key]]
+            current   = split(self.mixed_solution.current)[self.sub_map[key]]
+        else:
+            prev      = self.solution[key].previous
+            current   = self.solution[key].current
+        
+        return prev, current
 
 
     def __weak_heat_eq(self, dt: float) -> Form:
-        if self.is_mixed:
-            T_prev      = split(self.mixed_solution.previous)[self.sub_map["T"]]
-            T_current   = split(self.mixed_solution.current)[self.sub_map["T"]]
-        else:
-            T_prev      = self.solution["T"].previous
-            T_current   = self.solution["T"].current
+        T_prev, T_current = self.__get_functions("T")
 
         test = self.test_functions["T"]
-        eltype = self.__get_element_type("T")
+        eltype = self.__get_element_type(field="T")
 
         residual_form = (
             # Mass Matrix
@@ -213,6 +221,28 @@ class FEData:
             - self.operators.laplacian(type=eltype,
                                        test=test,
                                        u=T_current)
+        )
+
+        return residual_form
+
+    def __weak_advection_eq(self, dt: float, phase_key: str) -> Form:
+        alpha_prev, alpha_current   = self.__get_functions(key=phase_key)
+        u_prev, u_current           = self.__get_functions(key="u")
+
+        test = self.test_functions[phase_key]
+        eltype = self.__get_element_type(field=phase_key)
+
+        residual_form = (
+            # Mass Matrix
+            self.operators.time_derivative(test=test,
+                                           u_previous=alpha_prev,
+                                           u_current=alpha_current,
+                                           dt=dt)
+            # Advection
+            + self.operators.divergence(type=eltype,
+                                        test=test,
+                                        u=u_prev * alpha_prev,
+                                        numerical_flux=self.operators.upwind_vector)
         )
 
         return residual_form

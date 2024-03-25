@@ -1,6 +1,7 @@
 from ufl import (dot, inner, grad, jump, avg, div, dx, ds, dS, 
                  Form, TestFunction,FacetNormal)
 from dolfinx.fem import (Function)
+from .Mesh import Mesh
 from .TimeDependentFunction import TimeDependentFunction
 
 class FEOperators:
@@ -8,6 +9,11 @@ class FEOperators:
     Implements all methods necessary to formulate Continuous (CG) and
     Discontinuous Galerkin (DG) weak formulations.
     """
+    def __init__(self, mesh: Mesh) -> None:
+        self.n = FacetNormal(mesh.dolfinx_mesh)
+
+        return
+
 
     def time_derivative(self, test: TestFunction, u_previous: Function,
                         u_current: Function, dt: float,
@@ -25,7 +31,7 @@ class FEOperators:
 
     
     def divergence(self, type: str, test: TestFunction, u: Function,
-                numerical_flux=None) -> Form:
+                   numerical_flux=None) -> Form:
         """
         Computes the divergence of an expression `(velocity * u)` in DG form where `velocity` is a vector and `u` is a scalar.
         """
@@ -34,14 +40,15 @@ class FEOperators:
             pass    # Nothing else to do
         elif type == "Discontinuous Lagrange":
             n = self.n
-            F += jump(test) * numerical_flux(u,n) * dS # Hull integral
+            F += inner(jump(test),numerical_flux(u,n)) * dS # Hull integral
         else:
             raise NotImplementedError("Unknown type of discretization")
 
         return F
 
     
-    def gradient(self, type: str, test: TestFunction, u: Function, numerical_flux=None) -> Form:
+    def gradient(self, type: str, test: TestFunction, u: Function, 
+                 numerical_flux=None) -> Form:
         """
         Computes the gradient of a field `u`.
         """

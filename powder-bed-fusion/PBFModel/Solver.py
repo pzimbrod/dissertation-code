@@ -104,7 +104,7 @@ class PBFSolver:
         if fe_data.is_mixed:
             u = fe_data.mixed_solution.current
         else:
-            u = fe_data.solution["T"].current
+            u = fe_data.solution["alpha_solid"].current
 
         self.prob = NonlinearProblem(F=fe_data.weak_form, u=u, 
                                      bcs=bc_data.bc_list)
@@ -113,6 +113,7 @@ class PBFSolver:
         
         self.newton_solver.convergence_criterion = "incremental"
         self.newton_solver.rtol = 1e-6
+        self.newton_solver.atol = 1e-6
 
         # We can customize the linear solver used inside the NewtonSolver by
         # modifying the PETSc options

@@ -133,7 +133,10 @@ class PBFModel:
     def _solve_timestep(self):
         self.current_time += self.dt
         solver = self.solver.newton_solver
-        u = self.fe_data.solution["T"].current
+        if self.fe_data.is_mixed:
+            u = self.fe_data.mixed_solution.current
+        else:
+            u = self.fe_data.solution["alpha_solid"].current
 
         its, is_converged = solver.solve(u=u)
         assert(is_converged)
