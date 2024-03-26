@@ -2,6 +2,7 @@ from mpi4py import MPI
 from .Mesh import Mesh
 from .TimeDependentFunction import TimeDependentFunction
 from .FEOperators import FEOperators
+from .MaterialModel import MaterialModel
 from dolfinx.fem import (FunctionSpace, Function, Expression)
 from ufl import (FiniteElement, VectorElement, MixedElement,
                 Form, TestFunctions, TestFunction, split)
@@ -200,7 +201,8 @@ class FEData:
         return VoF_expr
     
 
-    def setup_weak_form(self, dt: float) -> None:
+    def setup_weak_form(self, dt: float, 
+                        material_model: MaterialModel) -> None:
         """
         Set up the weak PDE formulation of the problem.
         
@@ -215,27 +217,28 @@ class FEData:
 
         # Temperature
         self.weak_form += self.__weak_heat_eq(dt=dt,
-                            time_scheme=self.__select_time_scheme("T"))
+                            time_scheme=self.get_time_scheme("T"),
+                            material_model=material_model)
         
         # Solid phase
         self.weak_form += self.__weak_advection_eq(dt=dt, phase_key="alpha_solid",
-                            time_scheme=self.__select_time_scheme("alpha_solid"))
+                            time_scheme=self.get_time_scheme("alpha_solid"))
         
         # Liquid phase
         self.weak_form += self.__weak_advection_eq(dt=dt, phase_key="alpha_liquid",
-                            time_scheme=self.__select_time_scheme("alpha_liquid"))
+                            time_scheme=self.get_time_scheme("alpha_liquid"))
 
         return
     
 
-    def __select_time_scheme(self, key:str) -> str:
+    def get_time_scheme(self, key:str) -> str:
         if "time_scheme" in self.config[key].keys():
             return self.config[key]["time_scheme"]
         else:
             return self.default_time_schemes[key]
 
     
-    def __get_functions(self, key:str) -> tuple[Function]:
+    def get_functions(self, key:str) -> tuple[Function]:
         if self.is_mixed:
             # One cannot take subfunctions here, as a ufl expression is required.
             # This can only be attained using the split() method
@@ -248,10 +251,10 @@ class FEData:
         return prev, current
     
 
-    def __get_function(self, key: str, 
+    def get_function(self, key: str, 
                         temporal_scheme: str) -> Function:
         
-        prev, current = self.__get_functions(key=key)
+        prev, current = self.get_functions(key=key)
         
         if temporal_scheme == "implicit euler":
             fn = current
@@ -263,12 +266,19 @@ class FEData:
                 'implicit euler' and 'explicit euler'")
     
         return fn
+    
 
 
-    def __weak_heat_eq(self, dt: float, time_scheme: str) -> Form:
+
+    def __weak_heat_eq(self, dt: float, time_scheme: str,
+                       material_model: MaterialModel) -> Form:
         
-        T = self.__get_function(key="T", temporal_scheme=time_scheme)
-        T_prev, T_current = self.__get_functions(key="T")
+        T = self.get_function(key="T", temporal_scheme=time_scheme)
+        T_prev, T_current = self.get_functions(key="T")
+
+        rho = material_model.expressions["rho"]
+        cp = material_model.expressions["cp"]
+        kappa = material_model.expressions["kappa"]
 
         test = self.test_functions["T"]
         eltype = self.__get_element_type(field="T")
@@ -278,19 +288,21 @@ class FEData:
             self.operators.time_derivative(test=test,
                                            u_previous=T_prev,
                                            u_current=T_current,
-                                           dt=dt)
+                                           dt=dt,
+                                           coefficient=rho*cp)
             # Laplacian
             - self.operators.laplacian(type=eltype,
                                        test=test,
-                                       u=T)
+                                       u=T,
+                                       coefficient=kappa)
         )
 
         return residual_form
 
     def __weak_advection_eq(self, dt: float, phase_key: str, time_scheme: str) -> Form:
-        alpha_prev, alpha_current   = self.__get_functions(key=phase_key)
-        alpha = self.__get_function(key=phase_key,temporal_scheme=time_scheme)
-        u     = self.__get_function(key="u",temporal_scheme=time_scheme)
+        alpha_prev, alpha_current   = self.get_functions(key=phase_key)
+        alpha = self.get_function(key=phase_key,temporal_scheme=time_scheme)
+        u     = self.get_function(key="u",temporal_scheme=time_scheme)
 
         test = self.test_functions[phase_key]
         eltype = self.__get_element_type(field=phase_key)

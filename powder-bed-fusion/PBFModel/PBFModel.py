@@ -101,7 +101,8 @@ class PBFModel:
         self.fe_data        = FEData(mesh=self.mesh, config=fe_config,
                                      create_mixed=create_mixed)
         self.material_model = MaterialModel(mesh=self.mesh,
-                                            material_model=material_model)
+                                            material_model=material_model,
+                                            fe_data=self.fe_data)
         self.time_domain    = time_domain
         self.current_time   = self.time_domain[0]
         self.dt             = timestep
@@ -124,7 +125,8 @@ class PBFModel:
         self.output.write(fe_data=self.fe_data,
                           time=self.current_time)
         self.bcs.apply(mesh=self.mesh, fe_data=self.fe_data)
-        self.fe_data.setup_weak_form(dt=self.dt)
+        self.fe_data.setup_weak_form(dt=self.dt,
+                                     material_model=self.material_model)
         self.solver = PBFSolver(fe_data=self.fe_data, 
                              bc_data=self.bcs,
                              mesh=self.mesh)
