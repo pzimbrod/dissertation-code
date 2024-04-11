@@ -5,7 +5,8 @@ from .FEOperators import FEOperators
 from .MaterialModel import MaterialModel
 from dolfinx.fem import (FunctionSpace, Function, Expression)
 from ufl import (FiniteElement, VectorElement, MixedElement,
-                Form, TestFunctions, TestFunction, split)
+                Form, TestFunctions, TestFunction, split, sqrt,
+                grad, inner, dot)
 
 class FEData:
     """
@@ -86,9 +87,7 @@ class FEData:
         }
 
         # Algebraic expressions that can be evaluated in a postprocessing step
-        self.expressions = {
-            "alpha_gas":    self.__init_VoF_expression(),
-        }
+        self.expressions = self.__init_expressions()
 
         return
     
@@ -193,12 +192,39 @@ class FEData:
         return test_functions
     
 
-    def __init_VoF_expression(self) -> Expression:
-        VoF_expr = Expression(
+    def __init_expressions(self) -> dict[str,Expression]:
+        expressions = {}
+
+        # one of the phase fractions can be calculated by evaluating the algebraic
+        # constraint $$ \sum_i \alpha_i = 1.0 $$
+        expressions["alpha_gas"] = Expression(
             1.0 - self.solution["alpha_solid"].current - self.solution["alpha_liquid"].current,
             self.function_spaces["alpha_gas"].element.interpolation_points())
         
-        return VoF_expr
+        # A helper to express the unit normal
+        def unit_vector(x: Function) -> Form:
+            return x / sqrt(inner(x,x))
+        
+        def VoF_interface_gradient(alpha1: Function, alpha2: Function) -> Form:
+            return dot(grad(alpha1),alpha2) - dot(alpha1, grad(alpha2))
+        
+        return expressions
+    
+
+    def count_dofs(self) -> str:
+        total_dofs = 0
+        out_str = ""
+        for (key,fun) in self.solution.items():
+            if self.is_mixed:
+                dof_count = fun.previous.collapse().x.array.shape[0]
+            else:
+                dof_count = fun.previous.x.array.shape[0]
+            out_str += f"{key}:    {dof_count:,}\n"
+            total_dofs += dof_count
+        
+        out_str += f"Total:    {total_dofs:,}"
+        
+        return out_str
     
 
     def setup_weak_form(self, dt: float, 
@@ -227,11 +253,29 @@ class FEData:
         # Liquid phase
         self.weak_form += self.__weak_advection_eq(dt=dt, phase_key="alpha_liquid",
                             time_scheme=self.get_time_scheme("alpha_liquid"))
+        
+        # Gaseous phase is computed in postprocessing
+        ##
+
+        # Pressure
+        self.weak_form += self.__weak_pressure_eq()
+
+        # Velocity
+
 
         return
     
 
     def get_time_scheme(self, key:str) -> str:
+        """
+        Retrieve the scheme to be used for temporal discretization for a given field
+        
+        Parameters
+        ----------
+        
+        `key` : `str`
+            The dict key for the respective field
+        """
         if "time_scheme" in self.config[key].keys():
             return self.config[key]["time_scheme"]
         else:
@@ -239,6 +283,15 @@ class FEData:
 
     
     def get_functions(self, key:str) -> tuple[Function]:
+        """
+        Retrieve the current and previous functions of a given field
+        
+        Parameters
+        ----------
+        
+        `key` : `str`
+            The dict key for the respective field
+        """
         if self.is_mixed:
             # One cannot take subfunctions here, as a ufl expression is required.
             # This can only be attained using the split() method
@@ -253,6 +306,17 @@ class FEData:
 
     def get_function(self, key: str, 
                         temporal_scheme: str) -> Function:
+        """
+        Given a field and temporal scheme, return the correct part of the corresponding
+        `TimedependentFunction`
+        
+        Parameters
+        ----------
+        
+        `key` : `str`
+            The dict key for the respective field
+        `temporal_scheme` : `str`
+        """
         
         prev, current = self.get_functions(key=key)
         
@@ -320,4 +384,18 @@ class FEData:
                                         numerical_flux=self.operators.upwind_vector)
         )
 
+        return residual_form
+
+
+    def __weak_pressure_eq(self) -> Form:
+        p = self.get_function("p", temporal_scheme="explicit euler")
+
+        # for the weak gradient, a vector test function is required
+        test = self.test_functions["u"]
+        eltype = self.__get_element_type(field="p")
+        flux = self.operators.upwind_scalar
+
+        residual_form = self.operators.gradient(type=eltype, test=test, u=p,
+                                                numerical_flux=flux)
+        
         return residual_form

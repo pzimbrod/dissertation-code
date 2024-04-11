@@ -112,6 +112,9 @@ class PBFModel:
                                      mesh=self.mesh,
                                      fe_data=self.fe_data)
 
+        print("Model has Degrees of Freedom (DoFs):\n"+
+              self.fe_data.count_dofs())
+
         return
 
     
