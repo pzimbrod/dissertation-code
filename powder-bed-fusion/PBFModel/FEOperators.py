@@ -39,7 +39,7 @@ class FEOperators:
             pass    # Nothing else to do
         elif type == "Discontinuous Lagrange":
             n = self.n
-            F += inner(jump(test),numerical_flux(u,n)) * dS # Hull integral
+            F += inner(jump(test),numerical_flux(u)) * dS # Hull integral
         else:
             raise NotImplementedError("Unknown type of discretization")
 
@@ -57,7 +57,7 @@ class FEOperators:
         elif type == "Discontinuous Lagrange":
             n = self.n
             F += (
-                dot(jump(test),numerical_flux(n, u)) * dS
+                dot(jump(test),numerical_flux(u)) * dS
             )
         else:
             raise NotImplementedError("Unknown type of discretization")
@@ -85,38 +85,41 @@ class FEOperators:
         return F
 
 
-    def upwind_vector(self,n: FacetNormal, u: Function) -> Form:
+    def upwind_vector(self, u: Function) -> Form:
         """
         Returns the DG upwind flux of an expression `(velocity * u)` 
         that is compatible with unstructured meshes, i.e. it is expressed
         in terms of jumps and averages.
         """
+        n = self.n
         u_n = 0.5*(dot(u, n) + abs(dot(u, n)))
 
         return jump(u_n)
     
 
-    def upwind_scalar(self,n: FacetNormal, u: Function) -> Form:
+    def upwind_scalar(self, u: Function) -> Form:
         """
         Returns the DG upwind flux of an expression `u` 
         that is compatible with unstructured meshes, i.e. it is expressed
         in terms of jumps and averages.
         """
+        n = self.n
         flux = 0.5*(u * n + abs(u * n))
 
         return jump(flux)
 
 
-    def lax_friedrichs(self,velocity: Function,n: FacetNormal, 
-                       u: Function) -> Form:
+    def lax_friedrichs(self,velocity: Function,u: Function) -> Form:
         v_max = max(max(velocity),0)
+        n = self.n
 
         return dot(avg(velocity * u),n('+')) + 0.5 * v_max * jump(u)
 
 
-    def HLLE(self,velocity: Function,n: FacetNormal, u: Function) -> Form:
+    def HLLE(self,velocity: Function, u: Function) -> Form:
         v_max = max(max(velocity),0)
         v_min = min(min(velocity),0)
+        n = self.n
 
         return v_max/(v_max-v_min) * dot(velocity('+'),n('+'))*u('+') - \
             v_min * dot(velocity('-'),n('+'))*u('-') - v_max * v_min * jump(u)
