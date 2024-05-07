@@ -5,8 +5,8 @@ from .FEOperators import FEOperators
 from .MaterialModel import MaterialModel
 from dolfinx.fem import (FunctionSpace, Function, Expression)
 from ufl import (FiniteElement, VectorElement, MixedElement,
-                Form, TestFunctions, TestFunction, split, sqrt,
-                grad, inner, dot)
+                Form, TestFunctions, TestFunction, split,
+                inner, dx)
 
 class FEData:
     """
@@ -201,13 +201,6 @@ class FEData:
             1.0 - self.solution["alpha_solid"].current - self.solution["alpha_liquid"].current,
             self.function_spaces["alpha_gas"].element.interpolation_points())
         
-        # A helper to express the unit normal
-        def unit_vector(x: Function) -> Form:
-            return x / sqrt(inner(x,x))
-        
-        def VoF_interface_gradient(alpha1: Function, alpha2: Function) -> Form:
-            return dot(grad(alpha1),alpha2) - dot(alpha1, grad(alpha2))
-        
         return expressions
     
 
@@ -258,10 +251,11 @@ class FEData:
         ##
 
         # Pressure
-        self.weak_form += self.__weak_pressure_eq()
+        self.weak_form += self.__weak_pressure_eq(material_model=material_model)
 
         # Velocity
-
+        self.weak_form += self.__weak_stokes_eq(dt=dt,
+                                                material_model=material_model)
 
         return
     
@@ -387,15 +381,58 @@ class FEData:
         return residual_form
 
 
-    def __weak_pressure_eq(self) -> Form:
+    def __weak_pressure_eq(self, material_model: MaterialModel) -> Form:
         p = self.get_function("p", temporal_scheme="explicit euler")
 
         # for the weak gradient, a vector test function is required
-        test = self.test_functions["u"]
+        test_u = self.test_functions["u"]
+        test_p = self.test_functions["p"]
         eltype = self.__get_element_type(field="p")
         flux = self.operators.upwind_scalar
 
-        residual_form = self.operators.gradient(type=eltype, test=test, u=p,
+
+        residual_form = self.operators.gradient(type=eltype, test=test_u, u=p,
                                                 numerical_flux=flux)
         
+        # Recoil pressure
+        T = self.get_function(key="T", temporal_scheme="explicit euler")
+        residual_form += inner(test_p,material_model.recoil_pressure(T)) * dx
+        
         return residual_form
+    
+
+    def __weak_stokes_eq(self, dt: float, material_model: MaterialModel) -> Form:
+        field_key = "u"
+        u_prev, u_current = self.get_functions(key=field_key)
+
+        test = self.test_functions[field_key]
+        rho = material_model.expressions["rho"]
+        eltype = self.__get_element_type(field=field_key)
+
+        alpha_scheme = self.get_time_scheme("alpha_solid")
+        alpha_solid = self.get_function("alpha_solid",temporal_scheme=alpha_scheme)
+        alpha_liquid = self.get_function("alpha_liquid",temporal_scheme=alpha_scheme)
+        
+        residual_form = (
+            # Mass Matrix
+            self.operators.time_derivative(test=test,u_previous=u_prev,
+                                           u_current=u_current, dt=dt,
+                                           coefficient=rho)
+            # Laplacian
+            - self.operators.laplacian(type=eltype,
+                                       test=test,
+                                       u=u_prev,
+                                       coefficient=None)
+            # Capillary Stress tensor
+            #+ inner(
+            #    grad(test),
+            #    capillary_stress_tensor(I=self.operators.I,
+            #                                           sigma=0.1,
+            #                                           alpha1=alpha_solid,
+            #                                           alpha2=alpha_liquid
+            #                                           )
+            #    ) * dx
+        )
+
+        return residual_form
+
