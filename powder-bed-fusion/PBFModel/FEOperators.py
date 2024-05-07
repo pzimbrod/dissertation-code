@@ -1,5 +1,5 @@
 from ufl import (dot, inner, grad, jump, avg, div, dx, ds, dS, 
-                 Form, TestFunction,FacetNormal)
+                 Form, TestFunction,FacetNormal, Identity)
 from dolfinx.fem import (Function)
 from .Mesh import Mesh
 from .TimeDependentFunction import TimeDependentFunction
@@ -11,6 +11,7 @@ class FEOperators:
     """
     def __init__(self, mesh: Mesh) -> None:
         self.n = FacetNormal(mesh.dolfinx_mesh)
+        self.I = Identity(mesh.cell_dim)
 
         return
 
