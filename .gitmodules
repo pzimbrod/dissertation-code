@@ -1,0 +1,3 @@
+[submodule "multiphysics-pde-methods"]
+	path = multiphysics-pde-methods
+	url = https://github.com/pzimbrod/multiphysics-pde-methods.git
