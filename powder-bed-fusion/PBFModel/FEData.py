@@ -3,10 +3,10 @@ from .Mesh import Mesh
 from .TimeDependentFunction import TimeDependentFunction
 from .FEOperators import FEOperators
 from .MaterialModel import MaterialModel
-from dolfinx.fem import (FunctionSpace, Function, Expression)
-from ufl import (FiniteElement, VectorElement, MixedElement,
-                Form, TestFunctions, TestFunction, split,
+from dolfinx.fem import (FunctionSpace, Function, Expression, functionspace)
+from ufl import (Form, TestFunctions, TestFunction, split,
                 inner, dx)
+from basix.ufl import (element, mixed_element, _BasixElement)
 
 class FEData:
     """
@@ -92,35 +92,36 @@ class FEData:
         return
     
     
-    def __init_finite_elements(self, mesh: Mesh) -> dict[str,FiniteElement]:
+    def __init_finite_elements(self, mesh: Mesh) -> dict[str,_BasixElement]:
         """
         Create the mixed finite element (FE) to describe the problem.
         Each variable receives its own sub-FE according to the config
         """
 
-        cell = mesh.dolfinx_mesh.ufl_cell()
+        #cell = mesh.dolfinx_mesh.ufl_cell()
+        cell = mesh.dolfinx_mesh.basix_cell()
+        dim = mesh.cell_dim
         finite_elements = {}
 
         for (field, field_config) in self.config.items():
             if field_config["type"] == "scalar":
-                finite_elements[field] = FiniteElement(
+                finite_elements[field] = element(
                     family=field_config["element"],
                     cell=cell,
                     degree=field_config["degree"]
                 )
             elif field_config["type"] == "vector":
-                finite_elements[field] = VectorElement(
+                finite_elements[field] = element(
                     family=field_config["element"],
                     cell=cell,
-                    degree=field_config["degree"]
+                    degree=field_config["degree"],
+                    shape=(dim,)
                 )
 
         if self.is_mixed:
-            out = {"mixed": MixedElement(list(finite_elements.values()))}
-        else:
-            out = finite_elements
+            finite_elements["mixed"] = mixed_element(list(finite_elements.values()))
         
-        return out
+        return finite_elements
     
 
     def __init_function_space(self, mesh: Mesh) -> dict[str,FunctionSpace]:
@@ -130,7 +131,7 @@ class FEData:
         function_spaces = {}
 
         if self.is_mixed:
-            self.mixed_function_space = FunctionSpace(
+            self.mixed_function_space = functionspace(
                 mesh=mesh.dolfinx_mesh,
                 element=self.finite_elements["mixed"]
             )
@@ -139,18 +140,13 @@ class FEData:
                 function_spaces[field] = self.mixed_function_space.sub(idx)
         else:
             for (field, fe) in self.finite_elements.items():
-                function_spaces[field] = FunctionSpace(
+                function_spaces[field] = functionspace(
                     mesh=mesh.dolfinx_mesh,
                     element=fe
                 )
 
         return function_spaces
     
-
-    def __get_element_type(self, field: str) -> str:
-        eltype = self.function_spaces[field].ufl_element().family()
-        
-        return eltype
 
     
     def __init_solution(self) -> dict[str,TimeDependentFunction]:
@@ -339,7 +335,7 @@ class FEData:
         kappa = material_model.expressions["kappa"]
 
         test = self.test_functions["T"]
-        eltype = self.__get_element_type(field="T")
+        fe = self.finite_elements["T"]
 
         residual_form = (
             # Mass Matrix
@@ -349,7 +345,7 @@ class FEData:
                                            dt=dt,
                                            coefficient=rho*cp)
             # Laplacian
-            - self.operators.laplacian(type=eltype,
+            - self.operators.laplacian(fe=fe,
                                        test=test,
                                        u=T,
                                        coefficient=kappa)
@@ -363,7 +359,7 @@ class FEData:
         u     = self.get_function(key="u",temporal_scheme=time_scheme)
 
         test = self.test_functions[phase_key]
-        eltype = self.__get_element_type(field=phase_key)
+        fe = self.finite_elements[phase_key]
 
         residual_form = (
             # Mass Matrix
@@ -372,7 +368,7 @@ class FEData:
                                            u_current=alpha_current,
                                            dt=dt)
             # Advection
-            + self.operators.divergence(type=eltype,
+            + self.operators.divergence(fe=fe,
                                         test=test,
                                         u= u * alpha,
                                         numerical_flux=self.operators.upwind_vector)
@@ -387,11 +383,11 @@ class FEData:
         # for the weak gradient, a vector test function is required
         test_u = self.test_functions["u"]
         test_p = self.test_functions["p"]
-        eltype = self.__get_element_type(field="p")
-        flux = self.operators.upwind_scalar
+        fe = self.finite_elements["p"]
+        flux = self.operators.central_scalar
 
 
-        residual_form = self.operators.gradient(type=eltype, test=test_u, u=p,
+        residual_form = self.operators.gradient(fe=fe, test=test_u, u=p,
                                                 numerical_flux=flux)
         
         # Recoil pressure
@@ -407,7 +403,7 @@ class FEData:
 
         test = self.test_functions[field_key]
         rho = material_model.expressions["rho"]
-        eltype = self.__get_element_type(field=field_key)
+        fe = self.finite_elements["u"]
 
         alpha_scheme = self.get_time_scheme("alpha_solid")
         alpha_solid = self.get_function("alpha_solid",temporal_scheme=alpha_scheme)
@@ -419,7 +415,7 @@ class FEData:
                                            u_current=u_current, dt=dt,
                                            coefficient=rho)
             # Laplacian
-            - self.operators.laplacian(type=eltype,
+            - self.operators.laplacian(fe=fe,
                                        test=test,
                                        u=u_prev,
                                        coefficient=None)

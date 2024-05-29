@@ -47,7 +47,7 @@ fe_config = {
         },
 
     "p": {
-        "element": "CG", 
+        "element": "DG", 
         "degree": 1, 
         "type": "scalar",
         "time_scheme":  "explicit euler",
@@ -55,7 +55,7 @@ fe_config = {
 
     "u": {
         "element": "CG", 
-        "degree": 2, 
+        "degree": 1, 
         "type": "vector",
         "time_scheme":  "explicit euler",
         },

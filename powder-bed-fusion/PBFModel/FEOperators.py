@@ -1,6 +1,7 @@
 from ufl import (dot, inner, grad, jump, avg, div, dx, ds, dS, 
                  Form, TestFunction,FacetNormal, Identity)
 from dolfinx.fem import (Function)
+from basix.ufl import _ElementBase
 from .Mesh import Mesh
 from .TimeDependentFunction import TimeDependentFunction
 
@@ -30,58 +31,53 @@ class FEOperators:
         return F
 
     
-    def divergence(self, type: str, test: TestFunction, u: Function,
+    def divergence(self, fe: _ElementBase, test: TestFunction, u: Function,
                    numerical_flux=None) -> Form:
         """
         Computes the divergence of an expression `(velocity * u)` in DG form where `velocity` is a vector and `u` is a scalar.
         """
-        F = - inner(grad(test), u) * dx # Partial integration
-        if type == "Lagrange":
-            pass    # Nothing else to do
-        elif type == "Discontinuous Lagrange":
+        if fe.family_name != 'P':
+            raise NotImplementedError("Unknown type of discretization")
+        F = - inner(grad(test), u) * dx # Partial integration, CG part
+        if fe.discontinuous:
             n = self.n
             F += inner(jump(test),numerical_flux(u)) * dS # Hull integral
-        else:
-            raise NotImplementedError("Unknown type of discretization")
 
         return F
 
     
-    def gradient(self, type: str, test: TestFunction, u: Function, 
+    def gradient(self, fe: _ElementBase, test: TestFunction, u: Function, 
                  numerical_flux=None) -> Form:
         """
         Computes the gradient of a field `u`.
         """
-        F = - inner(div(test),u) * dx
-        if type == "Lagrange":
-            pass    # Nothing else to do
-        elif type == "Discontinuous Lagrange":
-            n = self.n
-            F += (
-                dot(jump(test),numerical_flux(u)) * dS
-            )
-        else:
+        F = - inner(div(test),u) * dx # Partial integration, CG part
+        if fe.family_name != 'P':
             raise NotImplementedError("Unknown type of discretization")
+        if fe.discontinuous:
+            F += (
+                inner(jump(test),numerical_flux(u)) * dS
+            )
 
         return F
 
 
-    def laplacian(self, type: str, test: TestFunction, u: Function,
+    def laplacian(self, fe: _ElementBase, test: TestFunction, u: Function,
                    coefficient=None, numerical_flux=None) -> Form:
         """
         Computes the laplacian of a field `u`.
         As the order of this operator is two, there is no DG implementation.
         """
         F = 0
-        if type == "Discontinuous Lagrange":
+        if fe.family_name != 'P':
+            raise NotImplementedError("Unknown type of discretization")
+        if fe.discontinuous:
             raise TypeError("Laplacian is not defined for DG discretizations. The operator needs to be hybridized first.")
-        elif type == "Lagrange":
+        else:
             if coefficient == None:
                 F -= inner(grad(test),grad(u)) * dx
             else:
                 F -= inner(grad(test),coefficient*grad(u)) * dx
-        else:
-            raise NotImplementedError("Unknown type of discretization")
 
         return F
 
@@ -108,6 +104,17 @@ class FEOperators:
         flux = 0.5*(u * n + abs(u * n))
 
         return jump(flux)
+    
+
+    def central_scalar(self, u: Function) -> Form:
+        """
+        Returns the DG upwind flux of an expression `u` 
+        that is compatible with unstructured meshes, i.e. it is expressed
+        in terms of jumps and averages.
+        """
+        n = self.n
+
+        return avg(u*n)
 
 
     def lax_friedrichs(self,velocity: Function,u: Function) -> Form:
