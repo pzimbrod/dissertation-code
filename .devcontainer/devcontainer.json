@@ -1,0 +1,15 @@
+{
+    "name": "FEniCSx v0.7.2",
+  
+    // Or use a Dockerfile or Docker Compose file. More info: https://containers.dev/guide/dockerfile
+    "image": "dolfinx/dolfinx:v0.7.2",
+    "customizations": {
+        "vscode": {
+          "settings": {},
+          "extensions": [
+            "ms-python.python"
+        ]
+        }
+      },
+    "postCreateCommand": "pip install pygmsh"
+}
