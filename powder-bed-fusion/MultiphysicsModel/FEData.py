@@ -7,8 +7,9 @@ from dolfinx.fem import (FunctionSpace, Function, Expression, functionspace)
 from ufl import (Form, TestFunctions, TestFunction, split,
                 inner, dx)
 from basix.ufl import (element, mixed_element, _BasixElement)
+from typing import Any
 
-class FEData:
+class AbstractFEData:
     """
     An abstraction holding all data structures that belong to a
     finite element specific implementation.
@@ -76,18 +77,6 @@ class FEData:
         self.test_functions = self.__init_test_functions()
         self.solution = self.__init_solution()
         self.operators = FEOperators(mesh=mesh)
-
-        self.default_time_schemes = {
-            "alpha_solid":  "explicit euler",
-            "alpha_liquid": "explicit euler",
-            "alpha_gas":    "explicit euler",
-            "p":            "explicit euler",
-            "u":            "explicit euler",
-            "T":            "implicit euler",
-        }
-
-        # Algebraic expressions that can be evaluated in a postprocessing step
-        self.expressions = self.__init_expressions()
 
         return
     
@@ -186,19 +175,7 @@ class FEData:
                 test_functions[field] = TestFunction(fs)
 
         return test_functions
-    
 
-    def __init_expressions(self) -> dict[str,Expression]:
-        expressions = {}
-
-        # one of the phase fractions can be calculated by evaluating the algebraic
-        # constraint $$ \sum_i \alpha_i = 1.0 $$
-        expressions["alpha_gas"] = Expression(
-            1.0 - self.solution["alpha_solid"].current - self.solution["alpha_liquid"].current,
-            self.function_spaces["alpha_gas"].element.interpolation_points())
-        
-        return expressions
-    
 
     def count_dofs(self) -> str:
         total_dofs = 0
@@ -214,47 +191,7 @@ class FEData:
         out_str += f"Total:    {total_dofs:,}"
         
         return out_str
-    
 
-    def setup_weak_form(self, dt: float, 
-                        material_model: MaterialModel) -> None:
-        """
-        Set up the weak PDE formulation of the problem.
-        
-        Parameters
-        ----------
-        
-        `dt` : `float`
-            the time step increment
-        """
-        self.weak_form = 0
-
-
-        # Temperature
-        self.weak_form += self.__weak_heat_eq(dt=dt,
-                            time_scheme=self.get_time_scheme("T"),
-                            material_model=material_model)
-        
-        # Solid phase
-        self.weak_form += self.__weak_advection_eq(dt=dt, phase_key="alpha_solid",
-                            time_scheme=self.get_time_scheme("alpha_solid"))
-        
-        # Liquid phase
-        self.weak_form += self.__weak_advection_eq(dt=dt, phase_key="alpha_liquid",
-                            time_scheme=self.get_time_scheme("alpha_liquid"))
-        
-        # Gaseous phase is computed in postprocessing
-        ##
-
-        # Pressure
-        self.weak_form += self.__weak_pressure_eq(material_model=material_model)
-
-        # Velocity
-        self.weak_form += self.__weak_stokes_eq(dt=dt,
-                                                material_model=material_model)
-
-        return
-    
 
     def get_time_scheme(self, key:str) -> str:
         """
@@ -320,8 +257,77 @@ class FEData:
                 'implicit euler' and 'explicit euler'")
     
         return fn
-    
 
+
+
+
+class PBFData(AbstractFEData):
+    def __init__(self, mesh: Mesh, config: dict[str, dict[str, Any]], create_mixed: bool = False) -> None:
+        super().__init__(mesh, config, create_mixed)
+
+        self.default_time_schemes = {
+            "alpha_solid":  "explicit euler",
+            "alpha_liquid": "explicit euler",
+            "alpha_gas":    "explicit euler",
+            "p":            "explicit euler",
+            "u":            "explicit euler",
+            "T":            "implicit euler",
+        }
+
+        # Algebraic expressions that can be evaluated in a postprocessing step
+        self.expressions = self.__init_expressions()
+
+
+    def __init_expressions(self) -> dict[str,Expression]:
+        expressions = {}
+
+        # one of the phase fractions can be calculated by evaluating the algebraic
+        # constraint $$ \sum_i \alpha_i = 1.0 $$
+        expressions["alpha_gas"] = Expression(
+            1.0 - self.solution["alpha_solid"].current - self.solution["alpha_liquid"].current,
+            self.function_spaces["alpha_gas"].element.interpolation_points())
+        
+        return expressions
+        
+
+    def setup_weak_form(self, dt: float, 
+                        material_model: MaterialModel) -> None:
+        """
+        Set up the weak PDE formulation of the problem.
+        
+        Parameters
+        ----------
+        
+        `dt` : `float`
+            the time step increment
+        """
+        self.weak_form = 0
+
+
+        # Temperature
+        self.weak_form += self.__weak_heat_eq(dt=dt,
+                            time_scheme=self.get_time_scheme("T"),
+                            material_model=material_model)
+        
+        # Solid phase
+        self.weak_form += self.__weak_advection_eq(dt=dt, phase_key="alpha_solid",
+                            time_scheme=self.get_time_scheme("alpha_solid"))
+        
+        # Liquid phase
+        self.weak_form += self.__weak_advection_eq(dt=dt, phase_key="alpha_liquid",
+                            time_scheme=self.get_time_scheme("alpha_liquid"))
+        
+        # Gaseous phase is computed in postprocessing
+        ##
+
+        # Pressure
+        self.weak_form += self.__weak_pressure_eq(material_model=material_model)
+
+        # Velocity
+        self.weak_form += self.__weak_stokes_eq(dt=dt,
+                                                material_model=material_model)
+
+        return
 
 
     def __weak_heat_eq(self, dt: float, time_scheme: str,
@@ -431,4 +437,3 @@ class FEData:
         )
 
         return residual_form
-

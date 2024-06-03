@@ -1,9 +1,9 @@
-from .Mesh import Mesh
-from .FEData import FEData
+from .Mesh import PBFMesh
+from .FEData import PBFData
 from .MaterialModel import MaterialModel
 from .Output import Output
-from .InitialCondition import InitialConditions
-from .BoundaryCondition import BoundaryConditions
+from .InitialCondition import PBFInitialConditions
+from .BoundaryCondition import PBFBoundaryConditions
 from .Solver import PBFSolver
 
 class PBFModel:
@@ -96,9 +96,9 @@ class PBFModel:
             the PDE problem.
         """
         
-        self.mesh           = Mesh(mesh_path=mesh_path, 
+        self.mesh           = PBFMesh(mesh_path=mesh_path, 
                                    bc_markers=bc_markers)
-        self.fe_data        = FEData(mesh=self.mesh, config=fe_config,
+        self.fe_data        = PBFData(mesh=self.mesh, config=fe_config,
                                      create_mixed=create_mixed)
         self.material_model = MaterialModel(mesh=self.mesh,
                                             material_model=material_model,
@@ -106,8 +106,8 @@ class PBFModel:
         self.time_domain    = time_domain
         self.current_time   = self.time_domain[0]
         self.dt             = timestep
-        self.ics            = InitialConditions()
-        self.bcs            = BoundaryConditions()
+        self.ics            = PBFInitialConditions()
+        self.bcs            = PBFBoundaryConditions()
         self.output         = Output(path="output/",
                                      mesh=self.mesh,
                                      fe_data=self.fe_data)

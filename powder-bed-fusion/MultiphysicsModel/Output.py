@@ -1,9 +1,9 @@
 from dolfinx.io import VTKFile
 from .Mesh import Mesh
-from .FEData import FEData
+from .FEData import AbstractFEData
 
 class Output:
-    def __init__(self, path: str, mesh: Mesh, fe_data: FEData) -> None:
+    def __init__(self, path: str, mesh: Mesh, fe_data: AbstractFEData) -> None:
         self.files = {}
         functions = fe_data.solution
         for field in functions.keys():
@@ -16,7 +16,7 @@ class Output:
         return
     
 
-    def write(self, fe_data: FEData, time:float) -> None:
+    def write(self, fe_data: AbstractFEData, time:float) -> None:
         functions = fe_data.solution
         for (field, function) in functions.items():
             with self.files[field] as file:

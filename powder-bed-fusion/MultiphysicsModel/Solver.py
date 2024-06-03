@@ -6,8 +6,8 @@ from ufl import derivative, TrialFunction
 from dolfinx.fem import form, Function
 from dolfinx.nls.petsc import NewtonSolver
 from .Mesh import Mesh
-from .FEData import FEData
-from .BoundaryCondition import BoundaryConditions
+from .FEData import AbstractFEData
+from .BoundaryCondition import AbstractBoundaryConditions
 from petsc4py import PETSc
 from mpi4py import MPI
 import numpy as np
@@ -98,8 +98,8 @@ class PBFSolver:
 
     def __init__(self, 
                  mesh: Mesh,
-                 fe_data: FEData, 
-                 bc_data: BoundaryConditions) -> None:
+                 fe_data: AbstractFEData, 
+                 bc_data: AbstractBoundaryConditions) -> None:
         
         if fe_data.is_mixed:
             u = fe_data.mixed_solution.current
@@ -126,7 +126,7 @@ class PBFSolver:
 
         return
 
-    def postprocess(self, fe_data: FEData) -> None:
+    def postprocess(self, fe_data: AbstractFEData) -> None:
         """
         Calculates derived quantities for the current timestep,
         such as the gas volume fraction, following \sum_i \alpha_i = 1

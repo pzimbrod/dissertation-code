@@ -1,11 +1,54 @@
 from dolfinx.fem import (FunctionSpace, locate_dofs_topological,
                          dirichletbc, Function)
-from .Mesh import Mesh
-from .FEData import FEData
+from .Mesh import AbstractMesh
+from .FEData import AbstractFEData
 from petsc4py.PETSc import ScalarType
 import numpy as np
 
-class BoundaryConditions:
+class AbstractBoundaryConditions:
+    def __init__(self) -> None:
+        self.functions = {}
+
+        return
+
+
+    def apply(self, mesh: AbstractMesh, fe_data:AbstractFEData) -> None:
+        """
+        for each function present in `fe_data`, interpolate the
+        respective BC
+        
+        Parameters
+        ----------
+
+        `fe_data` : `FEData`
+            the data structure containing Finite Elemenent specific
+            attributes of the problem
+        
+        `mesh` : `Mesh`
+            the computational mesh of the problem
+        """
+        self.bc_list = []
+        for (field,bc_fun) in self.functions.items():
+            if field in fe_data.config.keys():
+                self.bc_list.extend(bc_fun(mesh=mesh,fe_data=fe_data))
+        
+        return
+
+
+
+
+class RBBoundaryConditions(AbstractBoundaryConditions):
+    def __init__(self) -> None:
+        super().__init__()
+
+        return
+    
+
+
+
+
+
+class PBFBoundaryConditions(AbstractBoundaryConditions):
     """
     Implements the following boundary conditions:
 
@@ -29,50 +72,25 @@ class BoundaryConditions:
 
     Methods
     -------
-    apply(fe_data: FEData)
+    apply(fe_data:AbstractFEData)
         for each function present in `fe_data`, interpolate the
         respective BC
     """
 
     def __init__(self) -> None:
-
-        self.functions = {
-            "alpha_solid":  self._alpha_solid,
-            "alpha_liquid": self._alpha_liquid,
-            "alpha_gas":    self._alpha_gas,
-            "p":            self._p,
-            "u":            self._u,
-            "T":            self._T
-        }
-        
-        return
-    
-
-    def apply(self, mesh: Mesh, fe_data: FEData) -> None:
-        """
-        for each function present in `fe_data`, interpolate the
-        respective BC
-        
-        Parameters
-        ----------
-
-        `fe_data` : `FEData`
-            the data structure containing Finite Elemenent specific
-            attributes of the problem
-        
-        `mesh` : `Mesh`
-            the computational mesh of the problem
-        """
-        self.bc_list = []
-        for (field,bc_fun) in self.functions.items():
-            if field in fe_data.config.keys():
-                self.bc_list.extend(bc_fun(mesh=mesh,fe_data=fe_data))
+        super().__init__()
+        self.functions["alpha_solid"]  =  self._alpha_solid
+        self.functions["alpha_liquid"] = self._alpha_liquid
+        self.functions["alpha_gas"]    = self._alpha_gas
+        self.functions["p"]            = self._p
+        self.functions["u"]            = self._u
+        self.functions["T"]            = self._T
         
         return
     
 
     def _get_boundary_dofs(self, fs: FunctionSpace,
-                           mesh: Mesh, marker: str,
+                           mesh: AbstractMesh, marker: str,
                            mixed_space: bool = False) -> np.ndarray:
         if mixed_space:
             subspace, _ = fs.collapse()
@@ -89,7 +107,7 @@ class BoundaryConditions:
         return dofs
     
 
-    def _alpha_solid(self, fe_data: FEData, mesh: Mesh) -> None:
+    def _alpha_solid(self, fe_data:AbstractFEData, mesh: AbstractMesh) -> None:
         fs=fe_data.function_spaces["alpha_solid"]
         val_inlet = ScalarType(0.0)
         inlet_dofs = self._get_boundary_dofs(fs=fs,mesh=mesh,
@@ -104,7 +122,7 @@ class BoundaryConditions:
         return [bc_inlet,bc_bottom]
 
     
-    def _alpha_liquid(self, fe_data: FEData, mesh: Mesh) -> None:
+    def _alpha_liquid(self, fe_data:AbstractFEData, mesh: AbstractMesh) -> None:
         fs=fe_data.function_spaces["alpha_liquid"]
         inlet_dofs = self._get_boundary_dofs(fs=fs,mesh=mesh,
                                              marker="inlet")
@@ -119,7 +137,7 @@ class BoundaryConditions:
         return [bc_inlet,bc_bottom]
 
 
-    def _alpha_gas(self, fe_data: FEData, mesh: Mesh) -> None:
+    def _alpha_gas(self, fe_data:AbstractFEData, mesh: AbstractMesh) -> None:
         fs=fe_data.function_spaces["alpha_gas"]
         inlet_dofs = self._get_boundary_dofs(fs=fs,mesh=mesh,
                                              marker="inlet")
@@ -134,7 +152,7 @@ class BoundaryConditions:
         return [bc_inlet,bc_bottom]
 
 
-    def _p(self, fe_data: FEData, mesh: Mesh) -> None:
+    def _p(self, fe_data:AbstractFEData, mesh: AbstractMesh) -> None:
         fs=fe_data.function_spaces["p"]
         outlet_dofs = self._get_boundary_dofs(fs=fs,mesh=mesh,
                                               marker="outlet")
@@ -144,7 +162,7 @@ class BoundaryConditions:
         return [bc_outlet]
 
     
-    def _u(self, fe_data: FEData, mesh: Mesh) -> None:
+    def _u(self, fe_data:AbstractFEData, mesh: AbstractMesh) -> None:
         fs=fe_data.function_spaces["u"]
         is_mixed = fe_data.is_mixed
         dim = mesh.cell_dim
@@ -174,7 +192,7 @@ class BoundaryConditions:
         return [bc_in,bc_out]
 
 
-    def _T(self, fe_data: FEData, mesh: Mesh) -> None:
+    def _T(self, fe_data:AbstractFEData, mesh: AbstractMesh) -> None:
         fs=fe_data.function_spaces["T"]
 
         inlet_dofs  = self._get_boundary_dofs(fs=fs,mesh=mesh,

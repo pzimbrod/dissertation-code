@@ -1,6 +1,6 @@
-from PBFModel.geometry import check_msh_file
+from MultiphysicsModel.geometry import check_msh_file
 import os
-from PBFModel.PBFModel import PBFModel
+from MultiphysicsModel.PBFModel import PBFModel
 from dolfinx import log
 
 #========   Set this to True if you want to overwrite an existing mesh (if one is present) ==========#
