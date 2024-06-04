@@ -1,19 +1,18 @@
 from dolfinx.fem import Constant, Function, Form
-from .Mesh import Mesh
+from .Mesh import AbstractMesh
 from dolfinx import default_scalar_type
 from ufl import (sqrt, exp, inner, outer, dot, grad, Identity, SpatialCoordinate)
 import numpy as np
 
-class MaterialModel:
-    def __init__(self,mesh: Mesh, fe_data, material_model: dict[str,float]) -> None:
+class AbstractMaterialModel:
+    def __init__(self,mesh: AbstractMesh, fe_data, material_model: dict[str,float]) -> None:
         self.constants = self.__init_constants(mesh,material_model)
-        self.physical_constants = self.__init_physical_constants(material_model)
         self.expressions = self.__init_multiphase_expressions(fe_data)
-        
+
         return
 
 
-    def __init_constants(self, mesh: Mesh, 
+    def __init_constants(self, mesh: AbstractMesh, 
                 material_model: dict[str,float]) -> dict[str,Constant]:
         constants = {}
         # Phase models
@@ -23,7 +22,64 @@ class MaterialModel:
                 constants[phase][quantity] = Constant(mesh.dolfinx_mesh,value)
         
         return constants
+
     
+    def __init_multiphase_expressions(self, fe_data) -> Form:
+        first_phase = next(iter(self.constants.keys()))
+        phase_keys = set(first_phase.keys())
+        alpha_time_scheme = fe_data.get_time_scheme(key=first_phase)
+
+        expressions = {}
+        for phase, phase_model in self.constants.items():
+            sub_dict_keys = set(phase_model.keys())
+            missing_keys = phase_keys - sub_dict_keys
+            extra_keys = sub_dict_keys - phase_keys
+            if missing_keys or extra_keys:
+                raise AssertionError(
+                    f"Phase model of '{phase}' does not have the same keys as the first phase model. "
+                    f"Missing keys: {missing_keys}, Extra keys: {extra_keys}"
+                )
+
+            expressions[phase] = self.__get_multiphase_property(fe_data,
+                                        quantity=phase, 
+                                        temporal_scheme=alpha_time_scheme)
+        
+        return expressions
+
+
+    def unit_vector(self,x: Function) -> Form:
+            """The normalized version of a quantity, x/|x|^2"""
+            return x / sqrt(inner(x,x))
+    
+
+    def VoF_interface_gradient(self, alpha1: Function, alpha2: Function) -> Form:
+        """The surface normal gradient of an interface in VoF formulation"""
+        return grad(alpha1)*alpha2 - alpha1*grad(alpha2)
+    
+
+    def VoF_unit_normal(self, alpha1: Function, alpha2: Function) -> Form:
+        """The unit vector normal to a phase boundary in VoF formulation"""
+        grad_alpha = self.VoF_interface_gradient(alpha1,alpha2)
+        return self.unit_vector(x=grad_alpha)
+
+
+    def capillary_stress_tensor(self, I: Identity, sigma, alpha1: Function,
+                                alpha2: Function) -> Form:
+        """The capillary stress tensor in VoF formulation"""
+        n = self.VoF_unit_normal(alpha1,alpha2)
+
+        return -sigma*(I - outer(n,n))
+
+
+
+
+class PBFMaterialModel(AbstractMaterialModel):
+    def __init__(self,mesh: AbstractMesh, fe_data, material_model: dict[str,float]) -> None:
+        super().__init__(mesh,fe_data,material_model)
+        self.physical_constants = self.__init_physical_constants(material_model)
+        
+        return
+
 
     def __init_physical_constants(self, material_model: dict[str,float]) -> dict[str,float]:
         # Physical constants
@@ -59,42 +115,7 @@ class MaterialModel:
 
         return a_solid*qty_solid + a_liquid*qty_liquid + a_gas*qty_gas
 
-    
-    def __init_multiphase_expressions(self, fe_data) -> Form:
-        alpha_time_scheme = fe_data.get_time_scheme(key="alpha_solid")
-        expressions = {}
-        for key in self.constants["solid"].keys():
-            assert (key in self.constants["liquid"] and  key in self.constants["gas"]), \
-                        f"KeyError: phase key {key} must be present for all phases"
 
-            expressions[key] = self.__get_multiphase_property(fe_data,
-                                        quantity=key, 
-                                        temporal_scheme=alpha_time_scheme)
-        
-        return expressions
-    
-
-    def unit_vector(self,x: Function) -> Form:
-        """The normalized version of a quantity, x/|x|^2"""
-        return x / sqrt(inner(x,x))
-    
-
-    def VoF_interface_gradient(self, alpha1: Function, alpha2: Function) -> Form:
-        """The surface normal gradient of an interface in VoF formulation"""
-        return grad(alpha1)*alpha2 - alpha1*grad(alpha2)
-    
-
-    def VoF_unit_normal(self, alpha1: Function, alpha2: Function) -> Form:
-        """The unit vector normal to a phase boundary in VoF formulation"""
-        grad_alpha = self.VoF_interface_gradient(alpha1,alpha2)
-        return self.unit_vector(x=grad_alpha)
-
-
-    def capillary_stress_tensor(self, I: Identity, sigma, alpha1: Function,
-                                alpha2: Function) -> Form:
-        """The capillary stress tensor in VoF formulation"""
-        n = self.VoF_unit_normal(alpha1,alpha2)
-        return -sigma*(I - outer(n,n))
     
     def recoil_pressure(self, T: Function) -> Form:
         """The Clausius-Clapeyron equation for recoil pressure"""

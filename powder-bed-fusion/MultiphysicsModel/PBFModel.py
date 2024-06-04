@@ -1,6 +1,6 @@
 from .Mesh import PBFMesh
 from .FEData import PBFData
-from .MaterialModel import MaterialModel
+from .MaterialModel import PBFMaterialModel
 from .Output import Output
 from .InitialCondition import PBFInitialConditions
 from .BoundaryCondition import PBFBoundaryConditions
@@ -100,7 +100,7 @@ class PBFModel:
                                    bc_markers=bc_markers)
         self.fe_data        = PBFData(mesh=self.mesh, config=fe_config,
                                      create_mixed=create_mixed)
-        self.material_model = MaterialModel(mesh=self.mesh,
+        self.material_model = PBFMaterialModel(mesh=self.mesh,
                                             material_model=material_model,
                                             fe_data=self.fe_data)
         self.time_domain    = time_domain

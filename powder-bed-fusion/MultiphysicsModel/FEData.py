@@ -2,7 +2,7 @@ from mpi4py import MPI
 from .Mesh import Mesh
 from .TimeDependentFunction import TimeDependentFunction
 from .FEOperators import FEOperators
-from .MaterialModel import MaterialModel
+from .MaterialModel import AbstractMaterialModel
 from dolfinx.fem import (FunctionSpace, Function, Expression, functionspace)
 from ufl import (Form, TestFunctions, TestFunction, split,
                 inner, dx)
@@ -291,7 +291,7 @@ class PBFData(AbstractFEData):
         
 
     def setup_weak_form(self, dt: float, 
-                        material_model: MaterialModel) -> None:
+                        material_model: AbstractMaterialModel) -> None:
         """
         Set up the weak PDE formulation of the problem.
         
@@ -331,7 +331,7 @@ class PBFData(AbstractFEData):
 
 
     def __weak_heat_eq(self, dt: float, time_scheme: str,
-                       material_model: MaterialModel) -> Form:
+                       material_model: AbstractMaterialModel) -> Form:
         
         T = self.get_function(key="T", temporal_scheme=time_scheme)
         T_prev, T_current = self.get_functions(key="T")
@@ -383,7 +383,7 @@ class PBFData(AbstractFEData):
         return residual_form
 
 
-    def __weak_pressure_eq(self, material_model: MaterialModel) -> Form:
+    def __weak_pressure_eq(self, material_model: AbstractMaterialModel) -> Form:
         p = self.get_function("p", temporal_scheme="explicit euler")
 
         # for the weak gradient, a vector test function is required
@@ -403,7 +403,7 @@ class PBFData(AbstractFEData):
         return residual_form
     
 
-    def __weak_stokes_eq(self, dt: float, material_model: MaterialModel) -> Form:
+    def __weak_stokes_eq(self, dt: float, material_model: AbstractMaterialModel) -> Form:
         field_key = "u"
         u_prev, u_current = self.get_functions(key=field_key)
 
@@ -437,3 +437,35 @@ class PBFData(AbstractFEData):
         )
 
         return residual_form
+
+
+
+
+class RBData(AbstractFEData):
+    def __init__(self, mesh: Mesh, config: dict[str, dict[str, Any]], create_mixed: bool = False) -> None:
+        super().__init__(mesh, config, create_mixed)
+
+        self.default_time_schemes = {
+            "alpha1":       "explicit euler",
+            "alpha2":       "explicit euler",
+            "p":            "explicit euler",
+            "u":            "explicit euler",
+            "T":            "implicit euler",
+        }
+
+        # Algebraic expressions that can be evaluated in a postprocessing step
+        self.expressions = self.__init_expressions()
+
+        return
+    
+
+    def __init_expressions(self) -> dict[str,Expression]:
+        expressions = {}
+
+        # one of the phase fractions can be calculated by evaluating the algebraic
+        # constraint $$ \sum_i \alpha_i = 1.0 $$
+        expressions["alpha2"] = Expression(
+            1.0 - self.solution["alpha1"].current,
+            self.function_spaces["alpha2"].element.interpolation_points())
+        
+        return expressions
