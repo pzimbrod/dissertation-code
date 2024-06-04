@@ -165,21 +165,23 @@ class RBInitialConditions(AbstractInitialConditions):
 
 
     def _alpha1(self, fe_data: AbstractFEData) -> None:
-        solid = fe_data.solution["alpha_solid"].current
-        def IC_solid(x,height=0.2):
-            return np.where(x[2] <= height, 1.0, 0.0)
+        alpha1 = fe_data.solution["alpha1"].current
+        a = self.parameters["a"]
+        def IC_1(x):
+            return np.where(np.sqrt(x[0]**2+x[1]**2) <= a, 0.0, 1.0)
 
-        solid.interpolate(IC_solid)
+        alpha1.interpolate(IC_1)
         return
     
 
     def _alpha2(self, fe_data: AbstractFEData) -> None:
-        liquid = fe_data.solution["alpha_solid"].current
+        alpha2 = fe_data.solution["alpha2"].current
+        a = self.parameters["a"]
        
-        def IC_liquid(x):
-            return np.zeros((1,x.shape[1]))
+        def IC_2(x):
+            return np.where(np.sqrt(x[0]**2+x[1]**2) <= a, 1.0, 0.0)
 
-        liquid.interpolate(IC_liquid)
+        alpha2.interpolate(IC_2)
         return
     
 
@@ -187,10 +189,9 @@ class RBInitialConditions(AbstractInitialConditions):
         u = fe_data.solution["u"].current
         dim = u.ufl_shape[0]
 
-        def IC_u(x, height=0.3):
+        def IC_u(x):
             values = np.zeros((dim,x.shape[1]))
-            cond = np.argwhere(x[2] > height)
-            values[1,cond] = 1.0
+
             return values
         
         u.interpolate(IC_u)

@@ -1,9 +1,11 @@
 from dolfinx.fem import (FunctionSpace, locate_dofs_topological,
-                         dirichletbc, Function)
+                         dirichletbc, Function, Constant,
+                         locate_dofs_geometrical)
 from .Mesh import AbstractMesh
 from .FEData import AbstractFEData
 from petsc4py.PETSc import ScalarType
 import numpy as np
+from numpy.typing import ArrayLike
 
 class AbstractBoundaryConditions:
     def __init__(self) -> None:
@@ -38,12 +40,117 @@ class AbstractBoundaryConditions:
 
 
 class RBBoundaryConditions(AbstractBoundaryConditions):
-    def __init__(self) -> None:
+    def __init__(self, fe_data: AbstractFEData, parameters: dict[str,any]) -> None:
         super().__init__()
+
+        self.parameters = parameters
+
+        a = self.parameters["a"]
+        self.markers = {
+            "leftright":    lambda x: np.isclose(x[0], -2*a) | np.isclose(x[0],2*a),
+            "top":          lambda x: np.isclose(x[1], 2*a),
+            "bottom":       lambda x: np.isclose(x[1], -2*a),
+        }
+
+        self.boundary_dofs = self.__get_boundary_dofs(fe_data=fe_data)
+
+        self.functions["alpha1"]    = self._alpha1
+        self.functions["alpha2"]    = self._alpha2
+        self.functions["p"]         = self._p
+        self.functions["u"]         = self._u
+        self.functions["T"]         = self._T
 
         return
     
 
+    def __get_boundary_dofs(self, fe_data: AbstractFEData) -> dict[str,ArrayLike]:
+        boundary_dofs = {}
+        fs_idxs = fe_data.sub_map
+        fs = fe_data.mixed_function_space
+        markers = self.markers
+
+        for (field,idx) in fs_idxs.items():
+            boundary_dofs[field] = {}
+            sub = fs.sub(idx)
+            space, _ = sub.collapse()
+            for (facet,marker) in markers.items():
+                boundary_dofs[field][facet] = locate_dofs_geometrical(
+                    V=(sub,space),
+                    marker=marker
+                )
+
+        boundary_dofs["u_x"] = {}
+        sub = fs.sub(fs_idxs["u"]).sub(0)
+        space, _ = sub.collapse()
+        for (facet,marker) in markers.items():
+                boundary_dofs["u_x"][facet] = locate_dofs_geometrical(
+                    V=(sub,space),
+                    marker=marker
+        )
+                
+        return boundary_dofs
+    
+
+    def _alpha1(self, fe_data:AbstractFEData, mesh: AbstractMesh) -> None:
+        
+        return []
+
+
+    def _alpha2(self, fe_data:AbstractFEData, mesh: AbstractMesh) -> None:
+        
+        return []
+
+
+    def _p(self, fe_data:AbstractFEData, mesh: AbstractMesh) -> None:
+        fs=fe_data.function_spaces["p"]
+        wall_dofs = self.boundary_dofs["p"]["leftright"]
+        space, _ = fs.collapse()
+
+        p_bc = Function(space)
+        p_bc.interpolate(lambda x: np.full(x.shape[0],0.0))
+        bc_leftright = dirichletbc(V=fs,value=p_bc,dofs=wall_dofs)
+
+        return [bc_leftright]
+
+    
+    def _u(self, fe_data:AbstractFEData, mesh: AbstractMesh) -> None:
+        fs=fe_data.function_spaces["u"]
+        
+        top_dofs    = self.boundary_dofs["u_x"]["top"]
+        bottom_dofs = self.boundary_dofs["u_x"]["bottom"]
+        wall_dofs   = self.boundary_dofs["u_x"]["leftright"]
+        
+        space, _ = fs.sub(0).collapse()
+        # In this particular case, on all boundaries the x-component
+        # of velocity is constrained to be zero
+        u_x_bc = Function(space, dtype=ScalarType)
+        u_x_bc.interpolate(lambda x: np.full(x.shape[0], (0.)))
+
+        # Symmetry BC: no penetration through wall, tangential slip
+        bc_leftright    = dirichletbc(value=u_x_bc, dofs=wall_dofs,V=fs.sub(0))
+        # No slip
+        bc_top          = dirichletbc(value=u_x_bc, dofs=top_dofs,V=fs.sub(0))
+        # No slip
+        bc_bottom       = dirichletbc(value=u_x_bc, dofs=bottom_dofs,V=fs.sub(0))
+
+        return [bc_top,bc_bottom,bc_leftright]
+
+
+    def _T(self, fe_data:AbstractFEData, mesh: AbstractMesh) -> None:
+        fs=fe_data.function_spaces["T"]
+
+        top_dofs = self.boundary_dofs["T"]["top"]
+        space, _ = fs.collapse()
+        T_top = Function(space)
+        T_top.interpolate(lambda x: np.full(x.shape[0],self.parameters["temp_top"]))
+        bc_top   = dirichletbc(V=fs,value=T_top,dofs=top_dofs)
+
+        bottom_dofs = self.boundary_dofs["T"]["bottom"]
+        T_bottom = Function(space)
+        T_bottom.interpolate(lambda x: np.full(x.shape[0],self.parameters["temp_bottom"]))
+        bc_bottom = dirichletbc(V=fs,value=T_bottom,dofs=bottom_dofs)
+
+        return [bc_bottom,bc_top]
 
 
 
@@ -87,24 +194,7 @@ class PBFBoundaryConditions(AbstractBoundaryConditions):
         self.functions["T"]            = self._T
         
         return
-    
 
-    def _get_boundary_dofs(self, fs: FunctionSpace,
-                           mesh: AbstractMesh, marker: str,
-                           mixed_space: bool = False) -> np.ndarray:
-        if mixed_space:
-            subspace, _ = fs.collapse()
-            dofs = locate_dofs_topological(V=(fs,subspace),
-                                       entity_dim=mesh.facet_dim,
-                                       entities=mesh.facet_tags.find(
-                                           mesh.bc_markers[marker]))
-        else:
-            dofs = locate_dofs_topological(V=fs,
-                                        entity_dim=mesh.facet_dim,
-                                        entities=mesh.facet_tags.find(
-                                            mesh.bc_markers[marker]))
-        
-        return dofs
     
 
     def _alpha_solid(self, fe_data:AbstractFEData, mesh: AbstractMesh) -> None:
