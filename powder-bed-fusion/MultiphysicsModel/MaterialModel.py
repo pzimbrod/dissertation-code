@@ -133,7 +133,7 @@ class PBFMaterialModel(AbstractMaterialModel):
         return sigma * epsilon * (T**4 - T_amb**4)
 
 
-    def heat_laser(self, mesh: Mesh) -> Form:
+    def heat_laser(self, mesh: AbstractMesh) -> Form:
         P       = self.physical_constants["P"]
         alpha   = self.physical_constants["alpha"]
         Rl      = self.physical_constants["Rl"]
