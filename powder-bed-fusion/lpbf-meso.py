@@ -64,23 +64,23 @@ fe_config = {
         "element": "CG", 
         "degree": 1, 
         "type": "scalar",
-        "time_scheme":  "implicit euler",
+        "time_scheme":  "explicit euler",
         },
 }
 
 # This should be a dictionary of dictionaries
 material_model = {
-    "solid": {
+    "alpha_solid": {
         "rho":      7800.0, # kg/m3
         "cp":       502.4,  # J/(kg K)
         "kappa":    14.4,   # W/(m K)
     },
-    "liquid": {
+    "alpha_liquid": {
         "rho":      7800.0, # kg/m3
         "cp":       502.4,  # J/(kg K)
         "kappa":    14.4,   # W/(m K)
     },
-    "gas": {
+    "alpha_gas": {
         "rho":      7800.0, # kg/m3
         "cp":       502.4,  # J/(kg K)
         "kappa":    14.4,   # W/(m K)

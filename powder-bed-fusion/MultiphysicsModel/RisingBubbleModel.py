@@ -1,7 +1,7 @@
 from .Mesh import RBMesh
 from .FEData import RBData
-from .MaterialModel import MaterialModel
 from .Output import Output
+from .MaterialModel import RBMaterialModel
 from .InitialCondition import RBInitialConditions
 from .BoundaryCondition import RBBoundaryConditions
 from .Solver import PBFSolver
@@ -21,14 +21,14 @@ class RisingBubbleModel:
                                     bc_markers=bc_markers)
         self.fe_data        = RBData(mesh=self.mesh, config=fe_config,
                                      create_mixed=create_mixed)
-        self.material_model = MaterialModel(mesh=self.mesh,
-                                            material_model=material_model,
-                                            fe_data=self.fe_data)
+        self.material_model = RBMaterialModel(mesh=self.mesh, fe_data=self.fe_data,
+                                              material_model=material_model)
         self.time_domain    = time_domain
         self.current_time   = self.time_domain[0]
         self.dt             = timestep
-        self.ics            = RBInitialConditions()
-        self.bcs            = RBBoundaryConditions()
+        self.ics            = RBInitialConditions(params=model_parameters)
+        self.bcs            = RBBoundaryConditions(fe_data=self.fe_data, 
+                                                   parameters=model_parameters)
         self.output         = Output(path="output/",
                                      mesh=self.mesh,
                                      fe_data=self.fe_data)

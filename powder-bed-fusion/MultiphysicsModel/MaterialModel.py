@@ -23,13 +23,21 @@ class AbstractMaterialModel:
         
         return constants
 
+
+    def __get_multiphase_property(self, fe_data,
+                            quantity: str, temporal_scheme: str) -> Form:
+
+        phases = [fe_data.get_function(phase,temporal_scheme) for phase in self.constants.keys()]
+        quantities = [self.constants[phase][quantity] for phase in self.constants.keys()]
+
+        return np.inner(phases,quantities)
+
     
     def __init_multiphase_expressions(self, fe_data) -> Form:
         first_phase = next(iter(self.constants.keys()))
-        phase_keys = set(first_phase.keys())
+        phase_keys = set(self.constants[first_phase].keys())
         alpha_time_scheme = fe_data.get_time_scheme(key=first_phase)
 
-        expressions = {}
         for phase, phase_model in self.constants.items():
             sub_dict_keys = set(phase_model.keys())
             missing_keys = phase_keys - sub_dict_keys
@@ -40,8 +48,10 @@ class AbstractMaterialModel:
                     f"Missing keys: {missing_keys}, Extra keys: {extra_keys}"
                 )
 
-            expressions[phase] = self.__get_multiphase_property(fe_data,
-                                        quantity=phase, 
+        expressions = {}
+        for quantity in self.constants[first_phase].keys():
+            expressions[quantity] = self.__get_multiphase_property(fe_data,
+                                        quantity=quantity, 
                                         temporal_scheme=alpha_time_scheme)
         
         return expressions
@@ -103,19 +113,6 @@ class PBFMaterialModel(AbstractMaterialModel):
         
         return physical_constants
 
-
-    def __get_multiphase_property(self, fe_data,
-                            quantity: str, temporal_scheme: str) -> Form:
-        a_solid = fe_data.get_function("alpha_solid", temporal_scheme)
-        a_liquid = fe_data.get_function("alpha_liquid", temporal_scheme)
-        a_gas = fe_data.get_function("alpha_gas", temporal_scheme)
-        qty_solid   = self.constants["solid"][quantity]
-        qty_liquid  = self.constants["liquid"][quantity]
-        qty_gas     = self.constants["gas"][quantity]
-
-        return a_solid*qty_solid + a_liquid*qty_liquid + a_gas*qty_gas
-
-
     
     def recoil_pressure(self, T: Function) -> Form:
         """The Clausius-Clapeyron equation for recoil pressure"""
@@ -147,3 +144,10 @@ class PBFMaterialModel(AbstractMaterialModel):
         M = self.physical_constants["M"]
 
         return 0.82 * self.recoil_pressure(T)/sqrt(2*np.pi*M*R*T)
+
+
+
+
+class RBMaterialModel(AbstractMaterialModel):
+    def __init__(self, mesh: AbstractMesh, fe_data, material_model: dict[str, float]) -> None:
+        super().__init__(mesh, fe_data, material_model)

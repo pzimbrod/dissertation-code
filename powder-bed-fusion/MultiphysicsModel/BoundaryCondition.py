@@ -195,16 +195,33 @@ class PBFBoundaryConditions(AbstractBoundaryConditions):
         
         return
 
+
+    def __get_boundary_dofs(self, fs: FunctionSpace,
+                           mesh: AbstractMesh, marker: str,
+                           mixed_space: bool = False) -> np.ndarray:
+        if mixed_space:
+            subspace, _ = fs.collapse()
+            dofs = locate_dofs_topological(V=(fs,subspace),
+                                       entity_dim=mesh.facet_dim,
+                                       entities=mesh.facet_tags.find(
+                                           mesh.bc_markers[marker]))
+        else:
+            dofs = locate_dofs_topological(V=fs,
+                                        entity_dim=mesh.facet_dim,
+                                        entities=mesh.facet_tags.find(
+                                            mesh.bc_markers[marker]))
+        
+        return dofs
     
 
     def _alpha_solid(self, fe_data:AbstractFEData, mesh: AbstractMesh) -> None:
         fs=fe_data.function_spaces["alpha_solid"]
         val_inlet = ScalarType(0.0)
-        inlet_dofs = self._get_boundary_dofs(fs=fs,mesh=mesh,
+        inlet_dofs = self.__get_boundary_dofs(fs=fs,mesh=mesh,
                                              marker="inlet")
         bc_inlet = dirichletbc(V=fs,value=val_inlet,dofs=inlet_dofs)
 
-        bottom_dofs = self._get_boundary_dofs(fs=fs,mesh=mesh,
+        bottom_dofs = self.__get_boundary_dofs(fs=fs,mesh=mesh,
                                               marker="bottom")
         val_bottom = ScalarType(1.0)
         bc_bottom = dirichletbc(V=fs,value=val_bottom,dofs=bottom_dofs)
@@ -214,12 +231,12 @@ class PBFBoundaryConditions(AbstractBoundaryConditions):
     
     def _alpha_liquid(self, fe_data:AbstractFEData, mesh: AbstractMesh) -> None:
         fs=fe_data.function_spaces["alpha_liquid"]
-        inlet_dofs = self._get_boundary_dofs(fs=fs,mesh=mesh,
+        inlet_dofs = self.__get_boundary_dofs(fs=fs,mesh=mesh,
                                              marker="inlet")
         val_inlet = ScalarType(0.0)
         bc_inlet = dirichletbc(V=fs,value=val_inlet,dofs=inlet_dofs)
 
-        bottom_dofs = self._get_boundary_dofs(fs=fs,mesh=mesh,
+        bottom_dofs = self.__get_boundary_dofs(fs=fs,mesh=mesh,
                                               marker="bottom")
         val_bottom = ScalarType(0.0)
         bc_bottom = dirichletbc(V=fs,value=val_bottom,dofs=bottom_dofs)
@@ -229,12 +246,12 @@ class PBFBoundaryConditions(AbstractBoundaryConditions):
 
     def _alpha_gas(self, fe_data:AbstractFEData, mesh: AbstractMesh) -> None:
         fs=fe_data.function_spaces["alpha_gas"]
-        inlet_dofs = self._get_boundary_dofs(fs=fs,mesh=mesh,
+        inlet_dofs = self.__get_boundary_dofs(fs=fs,mesh=mesh,
                                              marker="inlet")
         val_inlet = ScalarType(1.0)
         bc_inlet = dirichletbc(V=fs,value=val_inlet,dofs=inlet_dofs)
 
-        bottom_dofs = self._get_boundary_dofs(fs=fs,mesh=mesh,
+        bottom_dofs = self.__get_boundary_dofs(fs=fs,mesh=mesh,
                                               marker="bottom")
         val_bottom = ScalarType(0.0)
         bc_bottom = dirichletbc(V=fs,value=val_bottom,dofs=bottom_dofs)
@@ -244,7 +261,7 @@ class PBFBoundaryConditions(AbstractBoundaryConditions):
 
     def _p(self, fe_data:AbstractFEData, mesh: AbstractMesh) -> None:
         fs=fe_data.function_spaces["p"]
-        outlet_dofs = self._get_boundary_dofs(fs=fs,mesh=mesh,
+        outlet_dofs = self.__get_boundary_dofs(fs=fs,mesh=mesh,
                                               marker="outlet")
         val = ScalarType(0.0)
         bc_outlet = dirichletbc(V=fs,value=val,dofs=outlet_dofs)
@@ -256,11 +273,11 @@ class PBFBoundaryConditions(AbstractBoundaryConditions):
         fs=fe_data.function_spaces["u"]
         is_mixed = fe_data.is_mixed
         dim = mesh.cell_dim
-        inlet_dofs   = self._get_boundary_dofs(fs=fs,mesh=mesh,
+        inlet_dofs   = self.__get_boundary_dofs(fs=fs,mesh=mesh,
                                               marker="inlet",
                                               mixed_space=is_mixed)
 
-        outlet_dofs  = self._get_boundary_dofs(fs=fs,mesh=mesh,
+        outlet_dofs  = self.__get_boundary_dofs(fs=fs,mesh=mesh,
                                               marker="outlet",
                                               mixed_space=is_mixed)
         def BC_u(x):
@@ -285,12 +302,12 @@ class PBFBoundaryConditions(AbstractBoundaryConditions):
     def _T(self, fe_data:AbstractFEData, mesh: AbstractMesh) -> None:
         fs=fe_data.function_spaces["T"]
 
-        inlet_dofs  = self._get_boundary_dofs(fs=fs,mesh=mesh,
+        inlet_dofs  = self.__get_boundary_dofs(fs=fs,mesh=mesh,
                                                marker="inlet")
         val_inlet  = ScalarType(298.0)
         bc_inlet  = dirichletbc(V=fs,value=val_inlet,dofs=inlet_dofs)
 
-        bottom_dofs = self._get_boundary_dofs(fs=fs,mesh=mesh,
+        bottom_dofs = self.__get_boundary_dofs(fs=fs,mesh=mesh,
                                                marker="bottom")
         val_bottom = ScalarType(473.0)
         bc_bottom = dirichletbc(V=fs,value=val_bottom,dofs=bottom_dofs)
