@@ -135,3 +135,49 @@ class PBFSolver:
         a_gas.interpolate(fe_data.expressions["alpha_gas"])
 
         return
+
+
+
+
+class RBSolver:
+
+    def __init__(self, 
+                 mesh: Mesh,
+                 fe_data: AbstractFEData, 
+                 bc_data: AbstractBoundaryConditions) -> None:
+        
+        if fe_data.is_mixed:
+            u = fe_data.mixed_solution.current
+        else:
+            raise NotImplementedError("Can only solve problem in mixed formulation\
+                                       for now")
+
+        self.prob = NonlinearProblem(F=fe_data.weak_form, u=u, 
+                                     bcs=bc_data.bc_list)
+        self.newton_solver = NewtonSolver(comm=mesh.dolfinx_mesh.comm,
+                                          problem=self.prob)
+        
+        self.newton_solver.convergence_criterion = "incremental"
+        self.newton_solver.rtol = 1e-6
+        self.newton_solver.atol = 1e-6
+
+        # We can customize the linear solver used inside the NewtonSolver by
+        # modifying the PETSc options
+        ksp = self.newton_solver.krylov_solver
+        opts = PETSc.Options()  # type: ignore
+        option_prefix = ksp.getOptionsPrefix()
+        opts[f"{option_prefix}ksp_type"] = "cg"
+        opts[f"{option_prefix}pc_type"] = "gamg"
+        ksp.setFromOptions()
+
+        return
+
+    def postprocess(self, fe_data: AbstractFEData) -> None:
+        """
+        Calculates derived quantities for the current timestep,
+        such as the gas volume fraction, following \sum_i \alpha_i = 1
+        """
+        a_2 = fe_data.solution["alpha2"].current
+        a_2.interpolate(fe_data.expressions["alpha2"])
+
+        return

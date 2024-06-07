@@ -4,7 +4,7 @@ from .Output import Output
 from .MaterialModel import RBMaterialModel
 from .InitialCondition import RBInitialConditions
 from .BoundaryCondition import RBBoundaryConditions
-from .Solver import PBFSolver
+from .Solver import RBSolver
 
 class RisingBubbleModel:
     def __init__(self,
@@ -51,7 +51,7 @@ class RisingBubbleModel:
         self.bcs.apply(mesh=self.mesh, fe_data=self.fe_data)
         self.fe_data.setup_weak_form(dt=self.dt,
                                      material_model=self.material_model)
-        self.solver = PBFSolver(fe_data=self.fe_data, 
+        self.solver = RBSolver(fe_data=self.fe_data, 
                              bc_data=self.bcs,
                              mesh=self.mesh)
 
