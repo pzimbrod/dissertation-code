@@ -257,6 +257,97 @@ class AbstractFEData:
                 'implicit euler' and 'explicit euler'")
     
         return fn
+    
+
+    def _weak_heat_eq(self, dt: float, time_scheme: str,
+                       material_model: AbstractMaterialModel) -> Form:
+        
+        T = self.get_function(key="T", temporal_scheme=time_scheme)
+        T_prev, T_current = self.get_functions(key="T")
+
+        rho = material_model.expressions["rho"]
+        cp = material_model.expressions["cp"]
+        kappa = material_model.expressions["kappa"]
+
+        test = self.test_functions["T"]
+        fe = self.finite_elements["T"]
+
+        residual_form = (
+            # Mass Matrix
+            self.operators.time_derivative(test=test,
+                                           u_previous=T_prev,
+                                           u_current=T_current,
+                                           dt=dt,
+                                           coefficient=rho*cp)
+            # Laplacian
+            - self.operators.laplacian(fe=fe,
+                                       test=test,
+                                       u=T,
+                                       coefficient=kappa)
+        )
+
+        return residual_form
+
+    def _weak_advection_eq(self, dt: float, phase_key: str, time_scheme: str) -> Form:
+        alpha_prev, alpha_current   = self.get_functions(key=phase_key)
+        alpha = self.get_function(key=phase_key,temporal_scheme=time_scheme)
+        u     = self.get_function(key="u",temporal_scheme=time_scheme)
+
+        test = self.test_functions[phase_key]
+        fe = self.finite_elements[phase_key]
+
+        residual_form = (
+            # Mass Matrix
+            self.operators.time_derivative(test=test,
+                                           u_previous=alpha_prev,
+                                           u_current=alpha_current,
+                                           dt=dt)
+            # Advection
+            + self.operators.divergence(fe=fe,
+                                        test=test,
+                                        u= u * alpha,
+                                        numerical_flux=self.operators.upwind_vector)
+        )
+
+        return residual_form
+
+
+    def _weak_pressure_eq(self, material_model: AbstractMaterialModel) -> Form:
+        p = self.get_function("p", temporal_scheme="explicit euler")
+
+        # for the weak gradient, a vector test function is required
+        test_u = self.test_functions["u"]
+        fe = self.finite_elements["p"]
+        flux = self.operators.central_scalar
+
+
+        residual_form = self.operators.gradient(fe=fe, test=test_u, u=p,
+                                                numerical_flux=flux)        
+        
+        return residual_form
+    
+
+    def _weak_stokes_eq(self, dt: float, material_model: AbstractMaterialModel) -> Form:
+        field_key = "u"
+        u_prev, u_current = self.get_functions(key=field_key)
+
+        test = self.test_functions[field_key]
+        rho = material_model.expressions["rho"]
+        fe = self.finite_elements["u"]
+
+        residual_form = (
+            # Mass Matrix
+            self.operators.time_derivative(test=test,u_previous=u_prev,
+                                           u_current=u_current, dt=dt,
+                                           coefficient=rho)
+            # Laplacian
+            - self.operators.laplacian(fe=fe,
+                                       test=test,
+                                       u=u_prev,
+                                       coefficient=None)
+        )
+
+        return residual_form
 
 
 
@@ -305,136 +396,36 @@ class PBFData(AbstractFEData):
 
 
         # Temperature
-        self.weak_form += self.__weak_heat_eq(dt=dt,
+        self.weak_form += self._weak_heat_eq(dt=dt,
                             time_scheme=self.get_time_scheme("T"),
                             material_model=material_model)
         
         # Solid phase
-        self.weak_form += self.__weak_advection_eq(dt=dt, phase_key="alpha_solid",
+        self.weak_form += self._weak_advection_eq(dt=dt, phase_key="alpha_solid",
                             time_scheme=self.get_time_scheme("alpha_solid"))
         
         # Liquid phase
-        self.weak_form += self.__weak_advection_eq(dt=dt, phase_key="alpha_liquid",
+        self.weak_form += self._weak_advection_eq(dt=dt, phase_key="alpha_liquid",
                             time_scheme=self.get_time_scheme("alpha_liquid"))
         
         # Gaseous phase is computed in postprocessing
         ##
 
         # Pressure
-        self.weak_form += self.__weak_pressure_eq(material_model=material_model)
+        self.weak_form += self._weak_pressure_eq(material_model=material_model)
+        self.weak_form += self._weak_recoil_pressure(material_model=material_model)
 
         # Velocity
-        self.weak_form += self.__weak_stokes_eq(dt=dt,
+        self.weak_form += self._weak_stokes_eq(dt=dt,
                                                 material_model=material_model)
 
-        return
+        return  
 
 
-    def __weak_heat_eq(self, dt: float, time_scheme: str,
-                       material_model: AbstractMaterialModel) -> Form:
-        
-        T = self.get_function(key="T", temporal_scheme=time_scheme)
-        T_prev, T_current = self.get_functions(key="T")
-
-        rho = material_model.expressions["rho"]
-        cp = material_model.expressions["cp"]
-        kappa = material_model.expressions["kappa"]
-
-        test = self.test_functions["T"]
-        fe = self.finite_elements["T"]
-
-        residual_form = (
-            # Mass Matrix
-            self.operators.time_derivative(test=test,
-                                           u_previous=T_prev,
-                                           u_current=T_current,
-                                           dt=dt,
-                                           coefficient=rho*cp)
-            # Laplacian
-            - self.operators.laplacian(fe=fe,
-                                       test=test,
-                                       u=T,
-                                       coefficient=kappa)
-        )
-
-        return residual_form
-
-    def __weak_advection_eq(self, dt: float, phase_key: str, time_scheme: str) -> Form:
-        alpha_prev, alpha_current   = self.get_functions(key=phase_key)
-        alpha = self.get_function(key=phase_key,temporal_scheme=time_scheme)
-        u     = self.get_function(key="u",temporal_scheme=time_scheme)
-
-        test = self.test_functions[phase_key]
-        fe = self.finite_elements[phase_key]
-
-        residual_form = (
-            # Mass Matrix
-            self.operators.time_derivative(test=test,
-                                           u_previous=alpha_prev,
-                                           u_current=alpha_current,
-                                           dt=dt)
-            # Advection
-            + self.operators.divergence(fe=fe,
-                                        test=test,
-                                        u= u * alpha,
-                                        numerical_flux=self.operators.upwind_vector)
-        )
-
-        return residual_form
-
-
-    def __weak_pressure_eq(self, material_model: AbstractMaterialModel) -> Form:
-        p = self.get_function("p", temporal_scheme="explicit euler")
-
-        # for the weak gradient, a vector test function is required
-        test_u = self.test_functions["u"]
-        test_p = self.test_functions["p"]
-        fe = self.finite_elements["p"]
-        flux = self.operators.central_scalar
-
-
-        residual_form = self.operators.gradient(fe=fe, test=test_u, u=p,
-                                                numerical_flux=flux)
-        
-        # Recoil pressure
+    def _weak_recoil_pressure(self, material_model: AbstractMaterialModel) -> Form:
         T = self.get_function(key="T", temporal_scheme="explicit euler")
-        residual_form += inner(test_p,material_model.recoil_pressure(T)) * dx
-        
-        return residual_form
-    
-
-    def __weak_stokes_eq(self, dt: float, material_model: AbstractMaterialModel) -> Form:
-        field_key = "u"
-        u_prev, u_current = self.get_functions(key=field_key)
-
-        test = self.test_functions[field_key]
-        rho = material_model.expressions["rho"]
-        fe = self.finite_elements["u"]
-
-        alpha_scheme = self.get_time_scheme("alpha_solid")
-        alpha_solid = self.get_function("alpha_solid",temporal_scheme=alpha_scheme)
-        alpha_liquid = self.get_function("alpha_liquid",temporal_scheme=alpha_scheme)
-        
-        residual_form = (
-            # Mass Matrix
-            self.operators.time_derivative(test=test,u_previous=u_prev,
-                                           u_current=u_current, dt=dt,
-                                           coefficient=rho)
-            # Laplacian
-            - self.operators.laplacian(fe=fe,
-                                       test=test,
-                                       u=u_prev,
-                                       coefficient=None)
-            # Capillary Stress tensor
-            #+ inner(
-            #    grad(test),
-            #    capillary_stress_tensor(I=self.operators.I,
-            #                                           sigma=0.1,
-            #                                           alpha1=alpha_solid,
-            #                                           alpha2=alpha_liquid
-            #                                           )
-            #    ) * dx
-        )
+        test_p = self.test_functions["p"]
+        residual_form = inner(test_p,material_model.recoil_pressure(T)) * dx
 
         return residual_form
 
@@ -469,3 +460,39 @@ class RBData(AbstractFEData):
             self.function_spaces["alpha2"].element.interpolation_points())
         
         return expressions
+    
+
+    def setup_weak_form(self, dt: float, 
+                        material_model: AbstractMaterialModel) -> None:
+        """
+        Set up the weak PDE formulation of the problem.
+        
+        Parameters
+        ----------
+        
+        `dt` : `float`
+            the time step increment
+        """
+        self.weak_form = 0
+
+
+        # Temperature
+        self.weak_form += self._weak_heat_eq(dt=dt,
+                            time_scheme=self.get_time_scheme("T"),
+                            material_model=material_model)
+        
+        # alpha1
+        self.weak_form += self._weak_advection_eq(dt=dt, phase_key="alpha1",
+                            time_scheme=self.get_time_scheme("alpha1"))
+        
+        # alpha2 is computed in postprocessing
+        ##
+
+        # Pressure
+        self.weak_form += self._weak_pressure_eq(material_model=material_model)
+
+        # Velocity
+        self.weak_form += self._weak_stokes_eq(dt=dt,
+                                                material_model=material_model)
+
+        return
