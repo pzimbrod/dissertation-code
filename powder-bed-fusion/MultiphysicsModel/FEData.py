@@ -348,6 +348,25 @@ class AbstractFEData:
         )
 
         return residual_form
+    
+
+    def _weak_capillary_pressure(self, material_model: AbstractMaterialModel) -> Form:
+        T       = self.get_function("T", temporal_scheme=self.get_time_scheme(key="T"))
+        alpha1  = self.get_function("alpha1", temporal_scheme=self.get_time_scheme(key="alpha1"))
+        alpha2  = self.get_function("alpha2", temporal_scheme=self.get_time_scheme(key="alpha2"))
+
+        capillary_pressure = material_model.capillary_stress_tensor(
+            I=self.operators.I,
+            sigma=material_model.surface_tension_coefficient(T=T),
+            alpha1=alpha1,
+            alpha2=alpha2
+        )
+
+        residual_form = self.operators.divergence(fe=self.finite_elements["u"],
+                                                  test=self.test_functions["u"],
+                                                  u=capillary_pressure)
+
+        return residual_form
 
 
 
@@ -494,5 +513,9 @@ class RBData(AbstractFEData):
         # Velocity
         self.weak_form += self._weak_stokes_eq(dt=dt,
                                                 material_model=material_model)
+        
+        # Surface tension
+        self.weak_form += self._weak_capillary_pressure(material_model=material_model)
+
 
         return

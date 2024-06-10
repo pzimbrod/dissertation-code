@@ -79,6 +79,12 @@ class AbstractMaterialModel:
         n = self.VoF_unit_normal(alpha1,alpha2)
 
         return -sigma*(I - outer(n,n))
+    
+    def surface_tension_coefficient(self, T: Function) -> Form:
+        sigma_0 = 0.59
+        sigma_1 = -2e-3
+
+        return sigma_0 + T * sigma_1
 
 
 
@@ -115,15 +121,40 @@ class PBFMaterialModel(AbstractMaterialModel):
 
     
     def recoil_pressure(self, T: Function) -> Form:
-        """The Clausius-Clapeyron equation for recoil pressure"""
-        p0 = self.physical_constants["p0"]
-        Lv = self.physical_constants["Lv"]
-        R  = self.physical_constants["R"]
-        Tv = self.physical_constants["Tv"]
+        """
+        Calculate the recoil pressure based on the given temperature.
+
+        Parameters:
+            T (Function): The temperature function.
+
+        Returns:
+            Form: The recoil pressure form.
+        """
+        # Extract the physical constants
+        p0 = self.physical_constants["p0"]  # Ambient pressure (Pa)
+        Lv = self.physical_constants["Lv"]  # Latent heat (J/g)
+        R  = self.physical_constants["R"]   # Universal gas constant (J/(mol K))
+        Tv = self.physical_constants["Tv"]  # Vaporization temperature (K)
+
+        # Calculate the recoil pressure using the Clausius-Clapeyron equation
         return 0.53 * p0 * Lv/R * exp(1/Tv - 1/T)
 
 
+
     def heat_radiation(self, T: Function) -> Form:
+        """
+        Calculate the heat radiation based on the given temperature.
+
+        Parameters:
+            T (Function): The temperature function.
+
+        Returns:
+            Form: The heat radiation form.
+
+        Calculates the heat radiation based on the Stefan-Boltzmann law. The formula is:
+        sigma * epsilon * (T**4 - T_amb**4), where sigma is the Stefan-Boltzmann constant,
+        epsilon is the radiative emissivity, T is the temperature, and T_amb is the ambient temperature.
+        """
         sigma   = self.physical_constants["sigma"]
         epsilon = self.physical_constants["epsilon"]
         T_amb   = self.physical_constants["T_amb"]
@@ -151,3 +182,5 @@ class PBFMaterialModel(AbstractMaterialModel):
 class RBMaterialModel(AbstractMaterialModel):
     def __init__(self, mesh: AbstractMesh, fe_data, material_model: dict[str, float]) -> None:
         super().__init__(mesh, fe_data, material_model)
+
+        return
