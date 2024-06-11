@@ -1,5 +1,5 @@
 from dolfinx.io import gmshio
-from dolfinx.mesh import Mesh, create_rectangle
+from dolfinx.mesh import Mesh, create_rectangle, CellType
 from mpi4py import MPI
 from numpy.typing import ArrayLike
 from types import FunctionType
@@ -23,7 +23,8 @@ class AbstractMesh:
 
 class RBMesh(AbstractMesh):
     def __init__(self, points: ArrayLike, n: ArrayLike, bc_markers: dict[str,FunctionType]) -> None:
-        mesh = create_rectangle(comm=MPI.COMM_WORLD, points=points, n=n)
+        mesh = create_rectangle(comm=MPI.COMM_WORLD, points=points, n=n, 
+                                cell_type=CellType.quadrilateral)
 
         super().__init__(mesh, bc_markers)
 
