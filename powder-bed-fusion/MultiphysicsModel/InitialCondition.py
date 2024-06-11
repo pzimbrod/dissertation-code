@@ -216,8 +216,8 @@ class RBInitialConditions(AbstractInitialConditions):
         a = self.parameters["a"]
 
         def IC_T(x):
-            out = np.zeros(x.shape[0])
-            out[:] = (T_l+T_u)/2.0 + (T_u-T_l)/(4.0*a) * x[:,1]
+            out = np.zeros((1,x.shape[1]))
+            out[:] = (T_l+T_u)/2.0 + (T_u-T_l)/(4.0*a) * x[1,:]
             return out
 
         T.interpolate(IC_T)
