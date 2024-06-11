@@ -29,7 +29,7 @@ class RisingBubbleModel:
         self.ics            = RBInitialConditions(params=model_parameters)
         self.bcs            = RBBoundaryConditions(fe_data=self.fe_data, 
                                                    parameters=model_parameters)
-        self.output         = Output(path="output/",
+        self.output         = Output(path="rising_bubble_output/",
                                      mesh=self.mesh,
                                      fe_data=self.fe_data)
 
@@ -64,7 +64,8 @@ class RisingBubbleModel:
         if self.fe_data.is_mixed:
             u = self.fe_data.mixed_solution.current
         else:
-            u = self.fe_data.solution["alpha_solid"].current
+            raise NotImplementedError("Can only solve problem in mixed formulation\
+                                       for now")
 
         its, is_converged = solver.solve(u=u)
         assert(is_converged)

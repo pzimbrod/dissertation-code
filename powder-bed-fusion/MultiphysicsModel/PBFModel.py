@@ -108,7 +108,7 @@ class PBFModel:
         self.dt             = timestep
         self.ics            = PBFInitialConditions()
         self.bcs            = PBFBoundaryConditions()
-        self.output         = Output(path="output/",
+        self.output         = Output(path="pbf_output/",
                                      mesh=self.mesh,
                                      fe_data=self.fe_data)
 
