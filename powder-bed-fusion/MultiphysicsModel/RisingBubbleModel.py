@@ -60,20 +60,17 @@ class RisingBubbleModel:
     
     def _solve_timestep(self):
         self.current_time += self.dt
-        solver = self.solver.newton_solver
-        if self.fe_data.is_mixed:
-            u = self.fe_data.mixed_solution.current
-        else:
+        if not self.fe_data.is_mixed:
             raise NotImplementedError("Can only solve problem in mixed formulation\
                                        for now")
 
-        its, is_converged = solver.solve(u=u)
+        its, is_converged = self.solver.newton_solver.solve(u=self.fe_data.mixed_solution.current)
         assert(is_converged)
         print(f"Nonlinear solve converged in {its} iterations.")
         self.solver.postprocess(fe_data=self.fe_data)
         self.output.write(fe_data=self.fe_data, 
                           time=self.current_time)
-        self.fe_data.solution.update()
+        self.fe_data.mixed_solution.update()
 
         return
 

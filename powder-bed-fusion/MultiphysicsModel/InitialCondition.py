@@ -26,8 +26,9 @@ class AbstractInitialConditions:
         for (field,ic_fun) in self.functions.items():
             if field in fe_data.config.keys():
                 ic_fun(fe_data=fe_data)
+                fe_data.solution[field].update()
         
-        fe_data.solution.update()
+        fe_data.mixed_solution.update()
         
         return
 
@@ -191,8 +192,10 @@ class RBInitialConditions(AbstractInitialConditions):
 
         def IC_u(x):
             values = np.zeros((dim,x.shape[1]))
+            values[1,:] = 0.1
 
             return values
+
         
         u.interpolate(IC_u)
         return
