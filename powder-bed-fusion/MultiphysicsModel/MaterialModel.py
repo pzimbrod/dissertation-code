@@ -26,11 +26,13 @@ class AbstractMaterialModel:
 
     def __get_multiphase_property(self, fe_data,
                             quantity: str, temporal_scheme: str) -> Form:
+        prop = 0
+        for phase in self.constants.keys():
+            phase_fraction = fe_data.get_function(phase,temporal_scheme)
+            qty = self.constants[phase][quantity]
+            prop += phase_fraction * qty
 
-        phases = [fe_data.get_function(phase,temporal_scheme) for phase in self.constants.keys()]
-        quantities = [self.constants[phase][quantity] for phase in self.constants.keys()]
-
-        return np.inner(phases,quantities)
+        return prop
 
     
     def __init_multiphase_expressions(self, fe_data) -> Form:
