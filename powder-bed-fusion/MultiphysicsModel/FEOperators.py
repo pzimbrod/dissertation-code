@@ -17,16 +17,16 @@ class FEOperators:
         return
 
 
-    def time_derivative(self, test: TestFunction, u_previous: Function,
-                        u_current: Function, dt: float, coefficient=None) -> Form:
+    def time_derivative(self, test: TestFunction, 
+                        u: TimeDependentFunction, dt: float, coefficient=None) -> Form:
         """
         Computes the mass matrix of a function `u` using the `TimeDependentFunction`
         class, which holds the values of `u` at different time steps.
         """
         if coefficient == None:
-            F = inner(test, u_current - u_previous) / dt * dx
+            F = inner(test, u.current - u.previous) / dt * dx
         else:
-            F = coefficient * inner(test, u_current - u_previous) / dt * dx
+            F = coefficient * inner(test, u.current - u.previous) / dt * dx
 
         return F
 

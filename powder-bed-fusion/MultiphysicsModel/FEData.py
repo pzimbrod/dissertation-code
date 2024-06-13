@@ -76,6 +76,7 @@ class AbstractFEData:
                                             mesh=mesh)
         self.test_functions = self.__init_test_functions()
         self.solution = self.__init_solution()
+        self.ufl_functions = self.__init_ufl_functions()
         self.operators = FEOperators(mesh=mesh)
 
         return
@@ -87,7 +88,6 @@ class AbstractFEData:
         Each variable receives its own sub-FE according to the config
         """
 
-        #cell = mesh.dolfinx_mesh.ufl_cell()
         cell = mesh.dolfinx_mesh.basix_cell()
         dim = mesh.cell_dim
         finite_elements = {}
@@ -175,6 +175,30 @@ class AbstractFEData:
                 test_functions[field] = TestFunction(fs)
 
         return test_functions
+    
+
+    def __init_ufl_functions(self) -> dict[str,TimeDependentFunction]:
+        """
+        To set up and evaluate weak forms in UFL, one cannot use
+        subfunctions. Instead, the mixed solution must be split using
+        the split() method.
+        """
+        ufl_functions = {}
+        for key in self.solution.keys():
+            if self.is_mixed:
+                # One cannot take subfunctions here, as a ufl expression is required.
+                # This can only be attained using the split() method
+                prev      = split(self.mixed_solution.previous)[self.sub_map[key]]
+                current   = split(self.mixed_solution.current)[self.sub_map[key]]
+            else:
+                prev      = self.solution[key].previous
+                current   = self.solution[key].current
+            ufl_functions[key] = TimeDependentFunction(
+                previous=prev,
+                current=current
+            )
+        
+        return ufl_functions
 
 
     def count_dofs(self) -> str:
@@ -208,28 +232,6 @@ class AbstractFEData:
         else:
             return self.default_time_schemes[key]
 
-    
-    def get_functions(self, key:str) -> tuple[Function]:
-        """
-        Retrieve the current and previous functions of a given field
-        
-        Parameters
-        ----------
-        
-        `key` : `str`
-            The dict key for the respective field
-        """
-        if self.is_mixed:
-            # One cannot take subfunctions here, as a ufl expression is required.
-            # This can only be attained using the split() method
-            prev      = split(self.mixed_solution.previous)[self.sub_map[key]]
-            current   = split(self.mixed_solution.current)[self.sub_map[key]]
-        else:
-            prev      = self.solution[key].previous
-            current   = self.solution[key].current
- 
-        return prev, current
-    
 
     def get_function(self, key: str, 
                         temporal_scheme: str) -> Function:
@@ -244,13 +246,12 @@ class AbstractFEData:
             The dict key for the respective field
         `temporal_scheme` : `str`
         """
-        
-        prev, current = self.get_functions(key=key)
+        function = self.ufl_functions[key]
         
         if temporal_scheme == "implicit euler":
-            fn = current
+            fn = function.current
         elif temporal_scheme == "explicit euler":
-            fn = prev
+            fn = function.previous
         else:
             raise NotImplementedError(f"Time stepping scheme \
                 '{temporal_scheme}' not implemented. Choose between \
@@ -259,11 +260,9 @@ class AbstractFEData:
         return fn
     
 
-    def _weak_heat_eq(self, dt: float, time_scheme: str,
-                       material_model: AbstractMaterialModel) -> Form:
-        
+    def _weak_heat_eq(self, dt: float, material_model: AbstractMaterialModel) -> Form:
+        time_scheme = self.get_time_scheme(key="T")
         T = self.get_function(key="T", temporal_scheme=time_scheme)
-        T_prev, T_current = self.get_functions(key="T")
 
         rho = material_model.expressions["rho"]
         cp = material_model.expressions["cp"]
@@ -275,8 +274,7 @@ class AbstractFEData:
         residual_form = (
             # Mass Matrix
             self.operators.time_derivative(test=test,
-                                           u_previous=T_prev,
-                                           u_current=T_current,
+                                           u=self.ufl_functions["T"],
                                            dt=dt,
                                            coefficient=rho*cp)
             # Laplacian
@@ -288,8 +286,8 @@ class AbstractFEData:
 
         return residual_form
 
-    def _weak_advection_eq(self, dt: float, phase_key: str, time_scheme: str) -> Form:
-        alpha_prev, alpha_current   = self.get_functions(key=phase_key)
+    def _weak_advection_eq(self, dt: float, phase_key: str) -> Form:
+        time_scheme = self.get_time_scheme(key=phase_key)
         alpha = self.get_function(key=phase_key,temporal_scheme=time_scheme)
         u     = self.get_function(key="u",temporal_scheme=time_scheme)
 
@@ -299,8 +297,7 @@ class AbstractFEData:
         residual_form = (
             # Mass Matrix
             self.operators.time_derivative(test=test,
-                                           u_previous=alpha_prev,
-                                           u_current=alpha_current,
+                                           u=self.ufl_functions[phase_key],
                                            dt=dt)
             # Advection
             + self.operators.divergence(fe=fe,
@@ -313,7 +310,8 @@ class AbstractFEData:
 
 
     def _weak_pressure_eq(self, material_model: AbstractMaterialModel) -> Form:
-        p = self.get_function("p", temporal_scheme="explicit euler")
+        time_scheme = self.get_time_scheme(key="p")
+        p = self.get_function("p", temporal_scheme=time_scheme)
 
         # for the weak gradient, a vector test function is required
         test_u = self.test_functions["u"]
@@ -322,38 +320,42 @@ class AbstractFEData:
 
 
         residual_form = self.operators.gradient(fe=fe, test=test_u, u=p,
-                                                numerical_flux=flux)        
+                                                numerical_flux=flux)
+
+        """penalty_stabilization_parameter = 1.e-7
+        residual_form -= penalty_stabilization_parameter * inner(self.test_functions["p"], p) * dx"""
         
         return residual_form
     
 
     def _weak_stokes_eq(self, dt: float, material_model: AbstractMaterialModel) -> Form:
-        field_key = "u"
-        u_prev, u_current = self.get_functions(key=field_key)
-
-        test = self.test_functions[field_key]
+        time_scheme = self.get_time_scheme(key="u")
+        u = self.get_function("u", temporal_scheme=time_scheme)
+        test = self.test_functions["u"]
         rho = material_model.expressions["rho"]
         fe = self.finite_elements["u"]
 
         residual_form = (
             # Mass Matrix
-            self.operators.time_derivative(test=test,u_previous=u_prev,
-                                           u_current=u_current, dt=dt,
+            self.operators.time_derivative(test=test,
+                                           u=self.ufl_functions["u"], 
+                                           dt=dt,
                                            coefficient=rho)
             # Laplacian
             - self.operators.laplacian(fe=fe,
                                        test=test,
-                                       u=u_prev,
+                                       u=u,
                                        coefficient=None)
         )
 
         return residual_form
     
 
-    def _weak_capillary_pressure(self, material_model: AbstractMaterialModel) -> Form:
+    def _weak_capillary_pressure(self, alpha1_key: str, alpha2_key: str,
+                                 material_model: AbstractMaterialModel) -> Form:
         T       = self.get_function("T", temporal_scheme=self.get_time_scheme(key="T"))
-        alpha1  = self.get_function("alpha1", temporal_scheme=self.get_time_scheme(key="alpha1"))
-        alpha2  = self.get_function("alpha2", temporal_scheme=self.get_time_scheme(key="alpha2"))
+        alpha1  = self.get_function(alpha1_key, temporal_scheme=self.get_time_scheme(key=alpha1_key))
+        alpha2  = self.get_function(alpha2_key, temporal_scheme=self.get_time_scheme(key=alpha2_key))
 
         capillary_pressure = material_model.capillary_stress_tensor(
             I=self.operators.I,
@@ -416,16 +418,13 @@ class PBFData(AbstractFEData):
 
         # Temperature
         self.weak_form += self._weak_heat_eq(dt=dt,
-                            time_scheme=self.get_time_scheme("T"),
                             material_model=material_model)
         
         # Solid phase
-        self.weak_form += self._weak_advection_eq(dt=dt, phase_key="alpha_solid",
-                            time_scheme=self.get_time_scheme("alpha_solid"))
+        self.weak_form += self._weak_advection_eq(dt=dt, phase_key="alpha_solid")
         
         # Liquid phase
-        self.weak_form += self._weak_advection_eq(dt=dt, phase_key="alpha_liquid",
-                            time_scheme=self.get_time_scheme("alpha_liquid"))
+        self.weak_form += self._weak_advection_eq(dt=dt, phase_key="alpha_liquid")
         
         # Gaseous phase is computed in postprocessing
         ##
@@ -497,12 +496,9 @@ class RBData(AbstractFEData):
 
         # Temperature
         self.weak_form += self._weak_heat_eq(dt=dt,
-                            time_scheme=self.get_time_scheme("T"),
                             material_model=material_model)
-        
         # alpha1
-        self.weak_form += self._weak_advection_eq(dt=dt, phase_key="alpha1",
-                            time_scheme=self.get_time_scheme("alpha1"))
+        self.weak_form += self._weak_advection_eq(dt=dt, phase_key="alpha1")
         
         # alpha2 is computed in postprocessing
         ##
@@ -515,7 +511,8 @@ class RBData(AbstractFEData):
                                                 material_model=material_model)
         
         # Surface tension
-        self.weak_form += self._weak_capillary_pressure(material_model=material_model)
-
+        self.weak_form += self._weak_capillary_pressure(material_model=material_model,
+                                                        alpha1_key="alpha1",
+                                                        alpha2_key="alpha2")
 
         return
