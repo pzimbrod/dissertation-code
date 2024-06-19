@@ -27,7 +27,7 @@ Alternatively, for a more documented version of this script, one can also execut
 
 The parameters of the simulation can all be changed in the `main` file and are given in dictionary form.
 
-Due to the complexity of the simulation, its classes are split up into different files and bundled in the `PBFModel` package.
+Due to the complexity of the simulation, its classes are split up into different files and bundled in the `MultiphysicsModel` package.
 The main data structures are:
 
 - `PBFModel` represents the top-level data structure that encapsulates an entire instance of one simulation.

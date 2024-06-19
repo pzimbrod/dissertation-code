@@ -1,7 +1,37 @@
 from dolfinx.io import gmshio
+from dolfinx.mesh import Mesh, create_rectangle, CellType
 from mpi4py import MPI
+from numpy.typing import ArrayLike
+from types import FunctionType
 
-class Mesh:
+class AbstractMesh:
+    def __init__(self, mesh: Mesh, bc_markers: any) -> None:
+        self.dolfinx_mesh = mesh
+        self.dolfinx_mesh.name = "Computational domain"
+        
+        # Useful for boundary conditions
+        self.cell_dim = self.dolfinx_mesh.topology.dim
+        self.facet_dim = self.cell_dim - 1
+
+        self.dolfinx_mesh.topology.create_connectivity(self.cell_dim,
+                                                       self.facet_dim)
+        self.dolfinx_mesh.topology.create_connectivity(self.facet_dim,
+                                                       self.cell_dim)
+
+        self.bc_markers = bc_markers
+
+
+class RBMesh(AbstractMesh):
+    def __init__(self, points: ArrayLike, n: ArrayLike, bc_markers: dict[str,FunctionType]) -> None:
+        mesh = create_rectangle(comm=MPI.COMM_WORLD, points=points, n=n, 
+                                cell_type=CellType.quadrilateral)
+
+        super().__init__(mesh, bc_markers)
+
+        return
+
+
+class PBFMesh(AbstractMesh):
     """
     The top level representation of the complete powder bed fusion model.
 
@@ -43,23 +73,14 @@ class Mesh:
             The `int` values of this dict are specified in the GMSH GEO file and must be set there,
             since they are read in by `dolfinx`.
         """
-        self.dolfinx_mesh, self.cell_tags, self.facet_tags = gmshio.read_from_msh(
+        dolfinx_mesh, cell_tags, facet_tags = gmshio.read_from_msh(
             filename=mesh_path,comm=MPI.COMM_WORLD)
+
+        super().__init__(mesh=dolfinx_mesh, bc_markers=bc_markers)
         
-        self.dolfinx_mesh.name = "Computational domain"
+        self.cell_tags = cell_tags
         self.cell_tags.name = "Cell markers"
+        self.facet_tags = facet_tags
         self.facet_tags.name = "Facet markers"
 
-
-        # Useful for boundary conditions
-        self.cell_dim = self.dolfinx_mesh.topology.dim
-        self.facet_dim = self.cell_dim - 1
-
-        self.dolfinx_mesh.topology.create_connectivity(self.cell_dim,
-                                                       self.facet_dim)
-        self.dolfinx_mesh.topology.create_connectivity(self.facet_dim,
-                                                       self.cell_dim)
-        
-        self.bc_markers = bc_markers
-        
         return
