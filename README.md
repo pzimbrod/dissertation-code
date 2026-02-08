@@ -1,3 +1,7 @@
+[![DOI](https://zenodo.org/badge/668281132.svg)](https://doi.org/10.5281/zenodo.18525781)
+
+
+
 # Efficient Simulation of Multiphysics Problems with Application to Metal-Additive Manufacturing
 
 This is the code repository for the corresponding dissertation thesis. It contains code that is addressed in chapters 6 and 7.
